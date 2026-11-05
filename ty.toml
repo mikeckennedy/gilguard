@@ -1,0 +1,11 @@
+[environment]
+# The oldest Python gilguard supports (requires-python in pyproject.toml): the 3.13t free-threaded build.
+python-version = "3.13"
+root = ["src", "."]
+# Resolve packages from venv/ even when it isn't activated (an editor task, a subprocess).
+python = "venv"
+
+[src]
+# tests/fixtures holds two tiny C extension packages (setup.py plus a re-export of the compiled module). Their compiled
+# modules only exist once installed into the venv, so there is nothing useful for ty to check in the source tree.
+exclude = ["**/.*", "**/__pycache__/**", "**/venv/**", "**/build/**", "tests/fixtures/**"]

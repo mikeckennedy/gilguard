@@ -1,0 +1,22 @@
+[project]
+name = "gilguard"
+version = "0.1.0"
+description = "Raise a detailed error the moment an import re-enables the GIL on free-threaded Python."
+readme = "README.md"
+requires-python = ">=3.13"
+license = "MIT"
+classifiers = [
+    "Programming Language :: Python :: Free Threading :: 3 - Stable",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+]
+
+[project.scripts]
+gilguard = "gilguard.__main__:main"
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[build-system]
+requires = ["uv_build>=0.8,<0.12"]
+build-backend = "uv_build"

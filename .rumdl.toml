@@ -1,0 +1,44 @@
+# Global settings
+[global]
+exclude = [
+    "build",
+    "dist",
+    ".venv",
+]
+respect_gitignore = true
+
+# Disable specific rules
+disable = ["MD013", "MD033", "MD045", "MD025", "MD042", "MD041", "MD024", "MD042", "MD052", "MD036", "MD029", "MD026", "MD014", "MD028"]
+# MD013 - Line length: Allows lines longer than the default limit for better readability in technical docs
+# MD033 - Inline HTML: Permits HTML tags within markdown for enhanced formatting when needed
+# MD045 - Images should have alternate text: Allows images without alt text (useful for decorative images)
+# MD025 - Multiple top-level headers: Permits multiple H1 headers in the same document
+# MD042 - No empty links: Allows placeholder links that may be filled in later
+# MD041 - First line should be top-level header: Allows other content before the main heading
+# MD024 - Multiple headings with the same content: Permits multiple H2 headers with the same content
+# MD042 - First line should be a top-level header: Permits other content before the main heading
+# MD052 - First line should be a top-level header: Permits other content before the main heading
+# MD036 - Emphasis used instead of a heading: Permits emphasis used instead of a heading when needed
+# MD029 - Ordered list item prefix: We are spanning sections with parts in between. We don't want to enforce a specific prefix.
+# MD026 - Trailing punctuation in header: We are using trailing punctuation in headers to indicate the type of content. (e.g. etc.)
+# MD002 - First header should be a h1 header: We are using h2 headers for the main content.
+# MD014 - Dollar signs used in HTML: We are using dollar signs in HTML to indicate the type of content. (e.g. $100)
+
+# Configure individual rules
+[rules.MD007]
+indent = 2
+
+[rules.MD013]
+line_length = 10000
+code_blocks = false
+tables = false
+
+#[MD025]
+#level = 1
+#front-matter-title = "title"
+
+[rules.MD044]
+names = ["gilguard", "CPython", "GitHub", "Markdown"]
+
+[rules.MD048]
+style = "backtick"
