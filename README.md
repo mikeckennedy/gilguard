@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="https://mkennedy-shared.nyc3.digitaloceanspaces.com/github/gilguard-banner.png" alt="gilguard: Catch the import. Name the culprit. Keep threads free." width="850">
+</p>
+
 # gilguard
 
 Raise a detailed error the moment an import re-enables the GIL on free-threaded Python.
