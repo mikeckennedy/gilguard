@@ -591,6 +591,9 @@ accent_color:
 #   - file: partials/head.html
 include_in_header:
   - file: assets/docs-head.html
+  # Umami analytics. Same website id as the other docs sites under mkennedy.codes/docs/.
+  - text: |
+      <script async src="https://uma.mkennedy.codes/script.js" data-website-id="fc9b6770-3b44-4073-944e-4a4f0e79f66a"></script>
 
 # Freeze (Execution Caching)
 # --------------------------
