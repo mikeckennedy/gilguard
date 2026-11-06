@@ -5,6 +5,9 @@ description = "Raise a detailed error the moment an import re-enables the GIL on
 readme = "README.md"
 requires-python = ">=3.13"
 license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Michael Kennedy", email = "mikeckennedy@gmail.com" }]
+keywords = ["free-threading", "free-threaded", "gil", "nogil", "import", "threading"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Programming Language :: Python :: Free Threading :: 3 - Stable",
@@ -13,6 +16,11 @@ classifiers = [
     "Programming Language :: Python :: 3.15",
 ]
 
+[project.urls]
+Homepage = "https://github.com/mikeckennedy/gilguard"
+Source = "https://github.com/mikeckennedy/gilguard"
+Issues = "https://github.com/mikeckennedy/gilguard/issues"
+
 [project.scripts]
 gilguard = "gilguard.__main__:main"
 
@@ -20,5 +28,5 @@ gilguard = "gilguard.__main__:main"
 dev = ["pytest>=8"]
 
 [build-system]
-requires = ["uv_build>=0.8,<0.12"]
+requires = ["uv_build>=0.8,<0.14"]
 build-backend = "uv_build"

@@ -6,9 +6,15 @@
 
 Raise a detailed error the moment an import re-enables the GIL on free-threaded Python.
 
-On a free-threaded build (3.13t, 3.14t), importing an extension module that doesn't declare free-threading support quietly turns the GIL back on for the rest of the process. CPython prints one `RuntimeWarning` and moves on. Once it's on, it can't be turned off.
+On a free-threaded build (3.13t, 3.14t, 3.15t), importing an extension module that doesn't declare free-threading support quietly turns the GIL back on for the rest of the process. CPython prints one `RuntimeWarning` and moves on. Once it's on, it can't be turned off.
 
 gilguard turns that into an exception that names the module, the package it came from, and the line of your code that pulled it in.
+
+## Installation
+
+```bash
+uv pip install gilguard
+```
 
 ## Usage
 
