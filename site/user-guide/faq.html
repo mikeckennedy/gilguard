@@ -156,16 +156,16 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
   <link rel="alternate" type="text/markdown" href="faq.md">
   <link rel="canonical" href="https://mkennedy.codes/docs/gilguard/user-guide/faq.html">
-  <meta name="description" content="Not noticeably. It adds a wrapper around each loader and a couple of sys._is_gil_enabled() calls per module. That’s tiny next to the work of finding...">
+  <meta name="description" content="Not noticeably. It adds a wrapper around each loader and a couple of sys._is_gil_enabled() calls per module. That’s a rounding error next to the work...">
   <meta property="og:type" content="website">
   <meta property="og:title" content="FAQ – gilguard | gilguard">
-  <meta property="og:description" content="Not noticeably. It adds a wrapper around each loader and a couple of sys._is_gil_enabled() calls per module. That’s tiny next to the work of finding...">
+  <meta property="og:description" content="Not noticeably. It adds a wrapper around each loader and a couple of sys._is_gil_enabled() calls per module. That’s a rounding error next to the work...">
   <meta property="og:url" content="https://mkennedy.codes/docs/gilguard/user-guide/faq.html">
   <meta property="og:site_name" content="gilguard">
   <meta property="og:image" content="https://mkennedy-shared.nyc3.digitaloceanspaces.com/github/gilguard-banner.png">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="FAQ – gilguard | gilguard">
-  <meta name="twitter:description" content="Not noticeably. It adds a wrapper around each loader and a couple of sys._is_gil_enabled() calls per module. That’s tiny next to the work of finding...">
+  <meta name="twitter:description" content="Not noticeably. It adds a wrapper around each loader and a couple of sys._is_gil_enabled() calls per module. That’s a rounding error next to the work...">
   <meta name="twitter:image" content="https://mkennedy-shared.nyc3.digitaloceanspaces.com/github/gilguard-banner.png">
 </head>
 
@@ -347,11 +347,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <section id="does-gilguard-slow-down-imports" class="level1">
 <h1>Does gilguard slow down imports?</h1>
-<p>Not noticeably. It adds a wrapper around each loader and a couple of <code>sys._is_gil_enabled()</code> calls per module. That’s tiny next to the work of finding and executing a module. It adds nothing after imports finish.</p>
+<p>Not noticeably. It adds a wrapper around each loader and a couple of <code>sys._is_gil_enabled()</code> calls per module. That’s a rounding error next to the work of finding and executing a module, and it adds nothing at all after imports finish.</p>
 </section>
 <section id="can-i-just-catch-gilenablederror-and-carry-on" class="level1">
 <h1>Can I just catch GILEnabledError and carry on?</h1>
-<p>You can, by naming it in an <code>except</code>, but it doesn’t help. The GIL stays on for the rest of the process either way. If you want the program to keep running while you collect reports, use <code>GILGUARD_ACTION=warn</code>. That’s what it’s for.</p>
+<p>You can, by naming it in an <code>except</code>, but it doesn’t help. Catching the error doesn’t un-ring the bell. The GIL stays on for the rest of the process either way. If you want the program to keep running while you collect reports, use <code>GILGUARD_ACTION=warn</code>. That’s what it’s for.</p>
 </section>
 <section id="what-happens-if-the-import-runs-in-a-worker-thread" class="level1">
 <h1>What happens if the import runs in a worker thread?</h1>
@@ -398,7 +398,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="can-i-use-it-in-production" class="level1">
 <h1>Can I use it in production?</h1>
-<p>Yes. It’s a pure-Python import hook with no dependencies. In <code>raise</code> mode, a deploy that pulls in an offending package fails at startup with a clear report, instead of running for weeks with the GIL quietly on. If you’d rather never fail a request over it, use <code>warn</code> and alert on the warning.</p>
+<p>Yes, and that’s where it earns its keep. It’s a pure-Python import hook with no dependencies. In <code>raise</code> mode, a deploy that pulls in an offending package fails at startup with a clear report, instead of running for weeks with the GIL quietly on while everyone wonders why the migration didn’t help. If you’d rather never fail a request over it, use <code>warn</code> and alert on the warning.</p>
 
 
 </section>

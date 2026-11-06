@@ -157,16 +157,16 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
   <link rel="alternate" type="text/markdown" href="auditing-an-environment.md">
   <link rel="canonical" href="https://mkennedy.codes/docs/gilguard/user-guide/auditing-an-environment.html">
-  <meta name="description" content="Inside a single process, gilguard can only catch the first import that turns the GIL on. After that the GIL is already on, and the next offender has...">
+  <meta name="description" content="Inside a single process, gilguard gets exactly one confession. It catches the first import that turns the GIL on, and after that the GIL is already on,...">
   <meta property="og:type" content="website">
   <meta property="og:title" content="Auditing an environment – gilguard | gilguard">
-  <meta property="og:description" content="Inside a single process, gilguard can only catch the first import that turns the GIL on. After that the GIL is already on, and the next offender has...">
+  <meta property="og:description" content="Inside a single process, gilguard gets exactly one confession. It catches the first import that turns the GIL on, and after that the GIL is already on,...">
   <meta property="og:url" content="https://mkennedy.codes/docs/gilguard/user-guide/auditing-an-environment.html">
   <meta property="og:site_name" content="gilguard">
   <meta property="og:image" content="https://mkennedy-shared.nyc3.digitaloceanspaces.com/github/gilguard-banner.png">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Auditing an environment – gilguard | gilguard">
-  <meta name="twitter:description" content="Inside a single process, gilguard can only catch the first import that turns the GIL on. After that the GIL is already on, and the next offender has...">
+  <meta name="twitter:description" content="Inside a single process, gilguard gets exactly one confession. It catches the first import that turns the GIL on, and after that the GIL is already on,...">
   <meta name="twitter:image" content="https://mkennedy-shared.nyc3.digitaloceanspaces.com/github/gilguard-banner.png">
 </head>
 
@@ -342,8 +342,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<p>Inside a single process, gilguard can only catch the first import that turns the GIL on. After that the GIL is already on, and the next offender has nothing left to flip. That’s fine for keeping a running app honest, but no help when you want the whole list before you switch an app over.</p>
-<p>The scanner gives you the whole list. It imports each package in its own fresh interpreter, with gilguard loaded first, and reports what each one did.</p>
+<p>Inside a single process, gilguard gets exactly one confession. It catches the first import that turns the GIL on, and after that the GIL is already on, so the next offender has nothing left to flip and walks past unnoticed. That’s fine for keeping a running app honest, and no help at all when you want the whole list before you switch an app over.</p>
+<p>The scanner gets you the whole list. It gives every installed package its own fresh interpreter, with gilguard loaded first, so no package can hide behind the one that went before it, and reports what each one did.</p>
 <section id="run-it" class="level1">
 <h1>Run it</h1>
 <div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> <span class="at">-m</span> gilguard</span></code></pre></div>
@@ -359,7 +359,7 @@ Note: only import-time loads are checked. Extensions a package loads lazily on f
 <h1>Check specific modules</h1>
 <p>Pass module names to check just those:</p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> <span class="at">-m</span> gilguard numpy pandas lxml</span></code></pre></div>
-<p>That’s quicker than a full scan, and it’s how you’d re-check one package after an upgrade.</p>
+<p>That’s quicker than a full scan, and it’s how you’d re-check one package after an upgrade to see if the fix took.</p>
 </section>
 <section id="options" class="level1">
 <h1>Options</h1>
@@ -438,7 +438,7 @@ Note: only import-time loads are checked. Extensions a package loads lazily on f
 </section>
 <section id="what-it-cant-see" class="level1">
 <h1>What it can’t see</h1>
-<p>The scan only imports each top-level package. Some packages load their extension modules later, on first use of a feature, and those won’t show up. Running your test suite with gilguard active (see <a href="../user-guide/tests-and-ci.html">Tests and CI</a>) catches those, as long as your tests exercise the code that loads them.</p>
+<p>The scan only imports each top-level package. Some packages are shy about their extension modules and load them later, on first use of a feature, and those won’t show up. Running your test suite with gilguard active (see <a href="../user-guide/tests-and-ci.html">Tests and CI</a>) catches those, as long as your tests exercise the code that loads them.</p>
 <p>Every child interpreter starts without <code>PYTHON_GIL</code> or <code>GILGUARD_ACTION</code> set, even if your shell sets them, so the scan reports what each package really does.</p>
 
 

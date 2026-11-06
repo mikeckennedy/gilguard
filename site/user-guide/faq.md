@@ -3,12 +3,12 @@
 
 # Does gilguard slow down imports?
 
-Not noticeably. It adds a wrapper around each loader and a couple of `sys._is_gil_enabled()` calls per module. That's tiny next to the work of finding and executing a module. It adds nothing after imports finish.
+Not noticeably. It adds a wrapper around each loader and a couple of `sys._is_gil_enabled()` calls per module. That's a rounding error next to the work of finding and executing a module, and it adds nothing at all after imports finish.
 
 
 # Can I just catch GILEnabledError and carry on?
 
-You can, by naming it in an `except`, but it doesn't help. The GIL stays on for the rest of the process either way. If you want the program to keep running while you collect reports, use `GILGUARD_ACTION=warn`. That's what it's for.
+You can, by naming it in an `except`, but it doesn't help. Catching the error doesn't un-ring the bell. The GIL stays on for the rest of the process either way. If you want the program to keep running while you collect reports, use `GILGUARD_ACTION=warn`. That's what it's for.
 
 
 # What happens if the import runs in a worker thread?
@@ -68,4 +68,4 @@ The scanner imports each top-level package and nothing else. If the package load
 
 # Can I use it in production?
 
-Yes. It's a pure-Python import hook with no dependencies. In `raise` mode, a deploy that pulls in an offending package fails at startup with a clear report, instead of running for weeks with the GIL quietly on. If you'd rather never fail a request over it, use `warn` and alert on the warning.
+Yes, and that's where it earns its keep. It's a pure-Python import hook with no dependencies. In `raise` mode, a deploy that pulls in an offending package fails at startup with a clear report, instead of running for weeks with the GIL quietly on while everyone wonders why the migration didn't help. If you'd rather never fail a request over it, use `warn` and alert on the warning.

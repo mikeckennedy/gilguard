@@ -2,9 +2,18 @@
 toc: false
 ---
 
-On a free-threaded Python build, a single import can quietly undo the reason you're on that build. If an extension module hasn't declared that it's safe without the GIL, CPython turns the GIL back on for the rest of the process, prints one `RuntimeWarning`, and keeps going. Your threads still run, they just stop running in parallel. Nothing tells you which package did it, and nothing can turn it back off.
+You moved the service to free-threaded Python. You gave the hot path a thread pool. You deployed, pulled up the dashboard, and watched the throughput line do absolutely nothing. Not slower. Not faster. The same shape it had last week, as if the whole migration had been a dream.
 
-gilguard turns that moment into an exception. It names the extension module, the package that shipped it, and the line of your code that started the import.
+An hour later you find it: one line in a startup log that scrolled past in half a second.
+
+```text
+RuntimeWarning: The global interpreter lock (GIL) has been enabled to load module
+'gilneeder._speedups', which has not declared that it can run safely without the GIL.
+```
+
+That line is CPython being careful. Somewhere in your import tree, an extension module never declared that it's safe without the GIL, so the interpreter turned the lock back on for the rest of the process and carried on. Your threads still run. They just take turns again. The warning names a private module you've never heard of, not the package you installed or the line that imported it, and nothing can turn the GIL back off.
+
+gilguard turns that line into an exception, raised at the import statement that caused it, with the culprit named.
 
 ```bash
 uv pip install gilguard
@@ -19,7 +28,7 @@ import fastapi
 import pandas  # <- raises here if anything in pandas' import tree needs the GIL
 ```
 
-When something in that tree needs the GIL, you get this instead of a warning you might not notice:
+When something in that tree needs the GIL, the program stops right there and tells you who did it, where it lives, and how it got in:
 
 ```text
 gilguard.GILEnabledError: Importing 'gilneeder._speedups' re-enabled the GIL.
@@ -41,7 +50,7 @@ Options:
   - Run `python -m gilguard` to list every installed package that does this.
 ```
 
-`gilneeder` is one of gilguard's test fixtures, a tiny C extension built to misbehave. The same report comes back as data on `exc.report`, so you can log it or fail a build on it.
+`gilneeder` is one of gilguard's test fixtures, a tiny C extension built to misbehave so the real ones don't have to. The same report comes back as data on `exc.report`, so you can log it, send it to your error tracker, or fail a build on it.
 
 ## What you get
 
@@ -50,25 +59,25 @@ Options:
 ::: {.g-col-12 .g-col-md-6}
 #### The culprit, by name
 
-The module, its file on disk, the distribution and version it came from, and the full import chain from your code down to the offending extension.
+The module, its file on disk, the distribution and version that shipped it, and the full import chain from your code down to the offending extension. No bisecting your imports at midnight.
 :::
 
 ::: {.g-col-12 .g-col-md-6}
 #### An error you can't swallow by accident
 
-`GILEnabledError` derives from `BaseException`, so the usual `try: import x` / `except ImportError:` pattern can't hide it and carry on with the GIL on.
+`GILEnabledError` derives from `BaseException`, the same tier as `KeyboardInterrupt`. The usual `try: import x` / `except ImportError:` fallback can't catch it, so no optional import anywhere in your dependencies can quietly carry on with the GIL on.
 :::
 
 ::: {.g-col-12 .g-col-md-6}
-#### A whole-environment audit
+#### A lineup of every offender
 
-A process can only catch the first offender. `python -m gilguard` imports every installed package in its own fresh interpreter and lists all of them. It exits 1 when it finds one, so it drops straight into CI.
+A process can only catch the first flip, because after that the GIL is already on. `python -m gilguard` gives every installed package its own fresh interpreter and lists all of them. It exits 1 when it finds one, so it drops straight into CI.
 :::
 
 ::: {.g-col-12 .g-col-md-6}
 #### Warn mode when you're not ready to fail
 
-Set `GILGUARD_ACTION=warn` and you get the same report as a warning while the program keeps running. Set it to `off` to run the same code on a standard build.
+Set `GILGUARD_ACTION=warn` and the same report lands as a warning while the program keeps running. Set it to `off` to run the same code on a standard build.
 :::
 
 :::

@@ -1,6 +1,6 @@
 # Configuration
 
-gilguard has one setting: what to do when the GIL comes on. You set it with an environment variable or in code.
+gilguard has one dial: what to do when the GIL comes on. You set it with an environment variable or in code.
 
 
 # GILGUARD_ACTION
@@ -20,7 +20,7 @@ The value isn't case sensitive. Anything other than those three raises `ValueErr
 
 ## When to use warn
 
-`warn` suits a first pass over an existing app. You see every report in your logs without taking anything down, then switch to `raise` once the offenders are dealt with. The warning is a [GILGuardWarning](../reference/GILGuardWarning.md#gilguard.GILGuardWarning), a `RuntimeWarning` subclass, so your existing warning filters and logging capture it like any other.
+`warn` suits a first pass over an existing app. Every report lands in your logs, nothing goes down, and once the list is empty you switch to `raise` so it stays empty. The warning is a [GILGuardWarning](../reference/GILGuardWarning.md#gilguard.GILGuardWarning), a `RuntimeWarning` subclass, so your existing warning filters and logging capture it like any other.
 
 Remember that in warn mode the program keeps running with the GIL on. It's a way to find problems, not a way to live with them.
 
@@ -69,4 +69,4 @@ gilguard.is_free_threaded_build()  # True on a 't' build
 gilguard.gil_enabled()  # True if the GIL is on right now
 ```
 
-They answer different questions. A free-threaded build can still have the GIL on, and that's exactly the case gilguard exists for.
+They answer different questions, and the gap between them is exactly where gilguard lives: a free-threaded build with the GIL on.

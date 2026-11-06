@@ -157,16 +157,16 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
   <link rel="alternate" type="text/markdown" href="reading-the-report.md">
   <link rel="canonical" href="https://mkennedy.codes/docs/gilguard/user-guide/reading-the-report.html">
-  <meta name="description" content="Every GILEnabledError carries a GILReport. The exception message is the report rendered as text. exc.report is the same thing as data.">
+  <meta name="description" content="Every GILEnabledError carries a GILReport. The exception message is the report rendered as text, and exc.report is the same thing as data. Think of it...">
   <meta property="og:type" content="website">
   <meta property="og:title" content="Reading the report – gilguard | gilguard">
-  <meta property="og:description" content="Every GILEnabledError carries a GILReport. The exception message is the report rendered as text. exc.report is the same thing as data.">
+  <meta property="og:description" content="Every GILEnabledError carries a GILReport. The exception message is the report rendered as text, and exc.report is the same thing as data. Think of it...">
   <meta property="og:url" content="https://mkennedy.codes/docs/gilguard/user-guide/reading-the-report.html">
   <meta property="og:site_name" content="gilguard">
   <meta property="og:image" content="https://mkennedy-shared.nyc3.digitaloceanspaces.com/github/gilguard-banner.png">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Reading the report – gilguard | gilguard">
-  <meta name="twitter:description" content="Every GILEnabledError carries a GILReport. The exception message is the report rendered as text. exc.report is the same thing as data.">
+  <meta name="twitter:description" content="Every GILEnabledError carries a GILReport. The exception message is the report rendered as text, and exc.report is the same thing as data. Think of it...">
   <meta name="twitter:image" content="https://mkennedy-shared.nyc3.digitaloceanspaces.com/github/gilguard-banner.png">
 </head>
 
@@ -340,10 +340,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<p>Every <a href="../reference/GILEnabledError.html#gilguard.GILEnabledError" class="gdls-link gdls-code">GILEnabledError</a> carries a <a href="../reference/GILReport.html#gilguard.GILReport" class="gdls-link gdls-code">GILReport</a>. The exception message is the report rendered as text. <code>exc.report</code> is the same thing as data.</p>
+<p>Every <a href="../reference/GILEnabledError.html#gilguard.GILEnabledError" class="gdls-link gdls-code">GILEnabledError</a> carries a <a href="../reference/GILReport.html#gilguard.GILReport" class="gdls-link gdls-code">GILReport</a>. The exception message is the report rendered as text, and <code>exc.report</code> is the same thing as data. Think of it as a case file: six lines, each answering a question you would otherwise be asking a debugger at the worst possible moment.</p>
 <section id="the-import-report" class="level1">
 <h1>The import report</h1>
-<p>This is the one you’ll see most. An import just turned the GIL on:</p>
+<p>This is the one you’ll see most. An import just turned the GIL on, and gilguard caught it in the act:</p>
 <pre class="text"><code>gilguard.GILEnabledError: Importing 'gilneeder._speedups' re-enabled the GIL.
 
   Module:       gilneeder._speedups
@@ -352,12 +352,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   Import chain: gilneeder -&gt; gilneeder._speedups
   Your code:    /home/me/app.py:5
   Imported by:  .../site-packages/gilneeder/__init__.py:1</code></pre>
-<p>Here’s what each line tells you:</p>
+<p>Here’s what each line tells you, top to bottom:</p>
 <div class="fields">
 <dl>
 <dt>Module</dt>
 <dd>
-The extension module that doesn’t declare free-threading support. This is the thing that actually flipped the GIL.
+The extension module that doesn’t declare free-threading support. This is the thing that actually flipped the GIL, and it’s usually a private helper you’ve never typed.
 </dd>
 <dt>File</dt>
 <dd>
@@ -365,15 +365,15 @@ Where that module lives. The filename shows the ABI it was built for. A <code>cp
 </dd>
 <dt>Distribution</dt>
 <dd>
-The installed package that shipped the module, and its version. This is what you’d upgrade, pin or replace.
+The installed package that shipped the module, and its version. This is the name you’d upgrade, pin, replace, or put in the title of a bug report.
 </dd>
 <dt>Import chain</dt>
 <dd>
-Every module on the way down, starting with the one your code imported. Useful when the offender is a dependency of a dependency.
+Every module on the way down, starting with the one your code imported. This is the line to read when the offender is a dependency of a dependency of something you installed for one function.
 </dd>
 <dt>Your code</dt>
 <dd>
-The import statement where the chain started, usually in your own code.
+The import statement where the chain started, usually in your own code. This is where you’d go first.
 </dd>
 <dt>Imported by</dt>
 <dd>
@@ -386,7 +386,7 @@ The statement that loaded the offending module, usually inside the package. It�
 </section>
 <section id="two-other-reasons" class="level1">
 <h1>Two other reasons</h1>
-<p>The GIL can also be on before gilguard gets a chance to watch.</p>
+<p>The GIL can also be on before gilguard gets a chance to watch. The report changes shape for those, since there’s no import to point at.</p>
 <p><strong>It was already on when gilguard was imported.</strong> If the GIL was forced on, the report says so:</p>
 <pre class="text"><code>gilguard.GILEnabledError: The GIL was already enabled before gilguard was imported.
 
@@ -400,7 +400,7 @@ Make `import gilguard` the very first import in your program.</code></pre>
     - gilneeder._speedups
 
 Make `import gilguard` the very first import in your program.</code></pre>
-<p>If that list is empty, something ran before your code did: a <code>sitecustomize</code> module or a <code>.pth</code> file are the usual suspects.</p>
+<p>If that list is empty, something ran before your code did. A <code>sitecustomize</code> module or a <code>.pth</code> file are the usual suspects.</p>
 <p><strong>It’s a standard build.</strong> The GIL is always on, so gilguard raises with the interpreter path and a pointer to <code>GILGUARD_ACTION=off</code>.</p>
 </section>
 <section id="using-the-report-in-code" class="level1">
@@ -437,13 +437,13 @@ Make `import gilguard` the very first import in your program.</code></pre>
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>Catching <a href="../reference/GILEnabledError.html#gilguard.GILEnabledError" class="gdls-link gdls-code">GILEnabledError</a> doesn’t put things back. The GIL is on for the rest of the process either way. Catch it to log or report, then let it go.</p>
+<p>Catching <a href="../reference/GILEnabledError.html#gilguard.GILEnabledError" class="gdls-link gdls-code">GILEnabledError</a> doesn’t put anything back. The GIL is on for the rest of the process either way. Catch it to log or report, then let it go.</p>
 </div>
 </div>
 </section>
 <section id="only-the-first-one" class="level1">
 <h1>Only the first one</h1>
-<p>gilguard reports the first import that turns the GIL on and stays quiet after that. Once it’s on, later imports can’t turn it on again, so there’s nothing more to catch in that process. To find every offender, use <a href="../user-guide/auditing-an-environment.html"><code>python -m gilguard</code></a>, which gives each package its own interpreter.</p>
+<p>gilguard reports the first import that turns the GIL on and stays quiet after that. Once it’s on, later imports can’t turn it on again, so there’s nothing more to catch in that process. One process, one confession. To find every offender, use <a href="../user-guide/auditing-an-environment.html"><code>python -m gilguard</code></a>, which gives each package its own interpreter.</p>
 
 
 </section>

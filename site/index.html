@@ -282,16 +282,20 @@ section.level2:first-of-type > h2:first-child,
 <h3 class="anchored" data-anchor-id="meta">Meta</h3>
 <p><strong>Requires:</strong> Python <code>&gt;=3.13</code><br> <a href="package-info.html">Package Info</a></p>
 </section>
-</div></div><p>On a free-threaded Python build, a single import can quietly undo the reason you’re on that build. If an extension module hasn’t declared that it’s safe without the GIL, CPython turns the GIL back on for the rest of the process, prints one <code>RuntimeWarning</code>, and keeps going. Your threads still run, they just stop running in parallel. Nothing tells you which package did it, and nothing can turn it back off.</p>
-<p>gilguard turns that moment into an exception. It names the extension module, the package that shipped it, and the line of your code that started the import.</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> pip install gilguard</span></code></pre></div>
+</div></div><p>You moved the service to free-threaded Python. You gave the hot path a thread pool. You deployed, pulled up the dashboard, and watched the throughput line do absolutely nothing. Not slower. Not faster. The same shape it had last week, as if the whole migration had been a dream.</p>
+<p>An hour later you find it: one line in a startup log that scrolled past in half a second.</p>
+<pre class="text"><code>RuntimeWarning: The global interpreter lock (GIL) has been enabled to load module
+'gilneeder._speedups', which has not declared that it can run safely without the GIL.</code></pre>
+<p>That line is CPython being careful. Somewhere in your import tree, an extension module never declared that it’s safe without the GIL, so the interpreter turned the lock back on for the rest of the process and carried on. Your threads still run. They just take turns again. The warning names a private module you’ve never heard of, not the package you installed or the line that imported it, and nothing can turn the GIL back off.</p>
+<p>gilguard turns that line into an exception, raised at the import statement that caused it, with the culprit named.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> pip install gilguard</span></code></pre></div>
 <section id="one-import-first-thing" class="level2">
 <h2 class="anchored" data-anchor-id="one-import-first-thing">One import, first thing</h2>
-<div class="sourceCode" id="cb2"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> gilguard  <span class="co"># must be first</span></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> fastapi</span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas  <span class="co"># &lt;- raises here if anything in pandas' import tree needs the GIL</span></span></code></pre></div>
-<p>When something in that tree needs the GIL, you get this instead of a warning you might not notice:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> gilguard  <span class="co"># must be first</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> fastapi</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas  <span class="co"># &lt;- raises here if anything in pandas' import tree needs the GIL</span></span></code></pre></div>
+<p>When something in that tree needs the GIL, the program stops right there and tells you who did it, where it lives, and how it got in:</p>
 <pre class="text"><code>gilguard.GILEnabledError: Importing 'gilneeder._speedups' re-enabled the GIL.
 
   Module:       gilneeder._speedups
@@ -309,26 +313,26 @@ Options:
   - Drop or replace gilneeder.
   - If you have verified it is thread-safe, run with PYTHON_GIL=0 to keep the GIL off (at your own risk).
   - Run `python -m gilguard` to list every installed package that does this.</code></pre>
-<p><code>gilneeder</code> is one of gilguard’s test fixtures, a tiny C extension built to misbehave. The same report comes back as data on <code>exc.report</code>, so you can log it or fail a build on it.</p>
+<p><code>gilneeder</code> is one of gilguard’s test fixtures, a tiny C extension built to misbehave so the real ones don’t have to. The same report comes back as data on <code>exc.report</code>, so you can log it, send it to your error tracker, or fail a build on it.</p>
 </section>
 <section id="what-you-get" class="level2">
 <h2 class="anchored" data-anchor-id="what-you-get">What you get</h2>
 <div class="grid">
 <section id="the-culprit-by-name" class="level4 g-col-12 g-col-md-6">
 <h4 class="anchored" data-anchor-id="the-culprit-by-name">The culprit, by name</h4>
-<p>The module, its file on disk, the distribution and version it came from, and the full import chain from your code down to the offending extension.</p>
+<p>The module, its file on disk, the distribution and version that shipped it, and the full import chain from your code down to the offending extension. No bisecting your imports at midnight.</p>
 </section>
 <section id="an-error-you-cant-swallow-by-accident" class="level4 g-col-12 g-col-md-6">
 <h4 class="anchored" data-anchor-id="an-error-you-cant-swallow-by-accident">An error you can’t swallow by accident</h4>
-<p><a href="reference/GILEnabledError.html#gilguard.GILEnabledError" class="gdls-link gdls-code">GILEnabledError</a> derives from <code>BaseException</code>, so the usual <code>try: import x</code> / <code>except ImportError:</code> pattern can’t hide it and carry on with the GIL on.</p>
+<p><a href="reference/GILEnabledError.html#gilguard.GILEnabledError" class="gdls-link gdls-code">GILEnabledError</a> derives from <code>BaseException</code>, the same tier as <code>KeyboardInterrupt</code>. The usual <code>try: import x</code> / <code>except ImportError:</code> fallback can’t catch it, so no optional import anywhere in your dependencies can quietly carry on with the GIL on.</p>
 </section>
-<section id="a-whole-environment-audit" class="level4 g-col-12 g-col-md-6">
-<h4 class="anchored" data-anchor-id="a-whole-environment-audit">A whole-environment audit</h4>
-<p>A process can only catch the first offender. <code>python -m gilguard</code> imports every installed package in its own fresh interpreter and lists all of them. It exits 1 when it finds one, so it drops straight into CI.</p>
+<section id="a-lineup-of-every-offender" class="level4 g-col-12 g-col-md-6">
+<h4 class="anchored" data-anchor-id="a-lineup-of-every-offender">A lineup of every offender</h4>
+<p>A process can only catch the first flip, because after that the GIL is already on. <code>python -m gilguard</code> gives every installed package its own fresh interpreter and lists all of them. It exits 1 when it finds one, so it drops straight into CI.</p>
 </section>
 <section id="warn-mode-when-youre-not-ready-to-fail" class="level4 g-col-12 g-col-md-6">
 <h4 class="anchored" data-anchor-id="warn-mode-when-youre-not-ready-to-fail">Warn mode when you’re not ready to fail</h4>
-<p>Set <code>GILGUARD_ACTION=warn</code> and you get the same report as a warning while the program keeps running. Set it to <code>off</code> to run the same code on a standard build.</p>
+<p>Set <code>GILGUARD_ACTION=warn</code> and the same report lands as a warning while the program keeps running. Set it to <code>off</code> to run the same code on a standard build.</p>
 </section>
 </div>
 </section>

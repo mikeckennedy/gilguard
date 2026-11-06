@@ -157,16 +157,16 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
   <link rel="alternate" type="text/markdown" href="configuration.md">
   <link rel="canonical" href="https://mkennedy.codes/docs/gilguard/user-guide/configuration.html">
-  <meta name="description" content="gilguard has one setting: what to do when the GIL comes on. You set it with an environment variable or in code.">
+  <meta name="description" content="gilguard has one dial: what to do when the GIL comes on. You set it with an environment variable or in code.">
   <meta property="og:type" content="website">
   <meta property="og:title" content="Configuration – gilguard | gilguard">
-  <meta property="og:description" content="gilguard has one setting: what to do when the GIL comes on. You set it with an environment variable or in code.">
+  <meta property="og:description" content="gilguard has one dial: what to do when the GIL comes on. You set it with an environment variable or in code.">
   <meta property="og:url" content="https://mkennedy.codes/docs/gilguard/user-guide/configuration.html">
   <meta property="og:site_name" content="gilguard">
   <meta property="og:image" content="https://mkennedy-shared.nyc3.digitaloceanspaces.com/github/gilguard-banner.png">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Configuration – gilguard | gilguard">
-  <meta name="twitter:description" content="gilguard has one setting: what to do when the GIL comes on. You set it with an environment variable or in code.">
+  <meta name="twitter:description" content="gilguard has one dial: what to do when the GIL comes on. You set it with an environment variable or in code.">
   <meta name="twitter:image" content="https://mkennedy-shared.nyc3.digitaloceanspaces.com/github/gilguard-banner.png">
 </head>
 
@@ -344,7 +344,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<p>gilguard has one setting: what to do when the GIL comes on. You set it with an environment variable or in code.</p>
+<p>gilguard has one dial: what to do when the GIL comes on. You set it with an environment variable or in code.</p>
 <section id="gilguard_action" class="level1">
 <h1>GILGUARD_ACTION</h1>
 <table class="caption-top table">
@@ -373,7 +373,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>The value isn’t case sensitive. Anything other than those three raises <code>ValueError</code> when gilguard is imported, so a typo fails fast instead of quietly turning the guard off.</p>
 <section id="when-to-use-warn" class="level2">
 <h2 class="anchored" data-anchor-id="when-to-use-warn">When to use warn</h2>
-<p><code>warn</code> suits a first pass over an existing app. You see every report in your logs without taking anything down, then switch to <code>raise</code> once the offenders are dealt with. The warning is a <a href="../reference/GILGuardWarning.html#gilguard.GILGuardWarning" class="gdls-link gdls-code">GILGuardWarning</a>, a <code>RuntimeWarning</code> subclass, so your existing warning filters and logging capture it like any other.</p>
+<p><code>warn</code> suits a first pass over an existing app. Every report lands in your logs, nothing goes down, and once the list is empty you switch to <code>raise</code> so it stays empty. The warning is a <a href="../reference/GILGuardWarning.html#gilguard.GILGuardWarning" class="gdls-link gdls-code">GILGuardWarning</a>, a <code>RuntimeWarning</code> subclass, so your existing warning filters and logging capture it like any other.</p>
 <p>Remember that in warn mode the program keeps running with the GIL on. It’s a way to find problems, not a way to live with them.</p>
 </section>
 <section id="when-to-use-off" class="level2">
@@ -407,7 +407,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>Two small functions are handy whether or not the guard is installed:</p>
 <div class="sourceCode" id="cb4"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>gilguard.is_free_threaded_build()  <span class="co"># True on a 't' build</span></span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>gilguard.gil_enabled()  <span class="co"># True if the GIL is on right now</span></span></code></pre></div>
-<p>They answer different questions. A free-threaded build can still have the GIL on, and that’s exactly the case gilguard exists for.</p>
+<p>They answer different questions, and the gap between them is exactly where gilguard lives: a free-threaded build with the GIL on.</p>
 
 
 </section>

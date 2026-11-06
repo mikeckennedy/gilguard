@@ -1,8 +1,8 @@
 # Auditing an environment
 
-Inside a single process, gilguard can only catch the first import that turns the GIL on. After that the GIL is already on, and the next offender has nothing left to flip. That's fine for keeping a running app honest, but no help when you want the whole list before you switch an app over.
+Inside a single process, gilguard gets exactly one confession. It catches the first import that turns the GIL on, and after that the GIL is already on, so the next offender has nothing left to flip and walks past unnoticed. That's fine for keeping a running app honest, and no help at all when you want the whole list before you switch an app over.
 
-The scanner gives you the whole list. It imports each package in its own fresh interpreter, with gilguard loaded first, and reports what each one did.
+The scanner gets you the whole list. It gives every installed package its own fresh interpreter, with gilguard loaded first, so no package can hide behind the one that went before it, and reports what each one did.
 
 
 # Run it
@@ -33,7 +33,7 @@ Pass module names to check just those:
 python -m gilguard numpy pandas lxml
 ```
 
-That's quicker than a full scan, and it's how you'd re-check one package after an upgrade.
+That's quicker than a full scan, and it's how you'd re-check one package after an upgrade to see if the fix took.
 
 
 # Options
@@ -83,6 +83,6 @@ Because it exits 1 on any offender, the scan works as a CI gate without extra sc
 
 # What it can't see
 
-The scan only imports each top-level package. Some packages load their extension modules later, on first use of a feature, and those won't show up. Running your test suite with gilguard active (see [Tests and CI](tests-and-ci.md)) catches those, as long as your tests exercise the code that loads them.
+The scan only imports each top-level package. Some packages are shy about their extension modules and load them later, on first use of a feature, and those won't show up. Running your test suite with gilguard active (see [Tests and CI](tests-and-ci.md)) catches those, as long as your tests exercise the code that loads them.
 
 Every child interpreter starts without `PYTHON_GIL` or `GILGUARD_ACTION` set, even if your shell sets them, so the scan reports what each package really does.

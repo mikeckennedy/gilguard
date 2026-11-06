@@ -157,16 +157,16 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
   <link rel="alternate" type="text/markdown" href="how-it-works.md">
   <link rel="canonical" href="https://mkennedy.codes/docs/gilguard/user-guide/how-it-works.html">
-  <meta name="description" content="gilguard is one module of plain Python, a few hundred lines with no dependencies. You don’t need any of this to use it, but it helps to know what it’s...">
+  <meta name="description" content="gilguard is one module of plain Python, a few hundred lines with no dependencies. You don’t need any of this to use it, but if you like knowing how the...">
   <meta property="og:type" content="website">
   <meta property="og:title" content="How it works – gilguard | gilguard">
-  <meta property="og:description" content="gilguard is one module of plain Python, a few hundred lines with no dependencies. You don’t need any of this to use it, but it helps to know what it’s...">
+  <meta property="og:description" content="gilguard is one module of plain Python, a few hundred lines with no dependencies. You don’t need any of this to use it, but if you like knowing how the...">
   <meta property="og:url" content="https://mkennedy.codes/docs/gilguard/user-guide/how-it-works.html">
   <meta property="og:site_name" content="gilguard">
   <meta property="og:image" content="https://mkennedy-shared.nyc3.digitaloceanspaces.com/github/gilguard-banner.png">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="How it works – gilguard | gilguard">
-  <meta name="twitter:description" content="gilguard is one module of plain Python, a few hundred lines with no dependencies. You don’t need any of this to use it, but it helps to know what it’s...">
+  <meta name="twitter:description" content="gilguard is one module of plain Python, a few hundred lines with no dependencies. You don’t need any of this to use it, but if you like knowing how the...">
   <meta name="twitter:image" content="https://mkennedy-shared.nyc3.digitaloceanspaces.com/github/gilguard-banner.png">
 </head>
 
@@ -341,37 +341,37 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<p>gilguard is one module of plain Python, a few hundred lines with no dependencies. You don’t need any of this to use it, but it helps to know what it’s doing when you read a report.</p>
+<p>gilguard is one module of plain Python, a few hundred lines with no dependencies. You don’t need any of this to use it, but if you like knowing how the trick is done, or you want to trust a report before you act on it, read on.</p>
 <section id="watching-every-import" class="level1">
 <h1>Watching every import</h1>
-<p>When you import gilguard, it puts a finder at the front of <code>sys.meta_path</code>. That finder doesn’t find anything itself. For each import, it asks the rest of <code>sys.meta_path</code> who can load the module, then wraps that loader’s <code>create_module</code> and <code>exec_module</code> before handing it back.</p>
-<p>The wrapped methods check <code>sys._is_gil_enabled()</code> before and after they run. If the GIL was off before and is on after, that module turned it on. gilguard builds the report on the spot, while the import is still on the stack.</p>
+<p>When you import gilguard, it puts a finder at the front of <code>sys.meta_path</code>. That finder is a doorman who never finds anything himself. For each import it asks the rest of <code>sys.meta_path</code> who can load the module, and then, before handing the loader back, it wraps that loader’s <code>create_module</code> and <code>exec_module</code>.</p>
+<p>The wrapped methods take a reading of <code>sys._is_gil_enabled()</code> before and after they run. If the GIL was off going in and on coming out, that module turned it on. gilguard builds the report on the spot, while the import is still on the stack and the evidence is still warm.</p>
 <p>That timing is what makes the report specific. While an import is in progress, gilguard keeps track of which modules are loading inside which (the import chain), and it walks the Python stack to find the import statements involved. The outermost one outside the import machinery is “Your code”. The innermost is “Imported by”.</p>
 <p>The chain is tracked per thread, so imports running at the same time on different threads each get their own chain.</p>
 <p>The error is raised in the thread that ran the import. If that’s a worker thread, only that thread unwinds: the main thread keeps going with the GIL on, and the process can still exit 0. gilguard leaves that alone on purpose, since killing the process from inside an import would skip cleanup and surprise most programs. The <a href="../user-guide/faq.html#what-happens-if-the-import-runs-in-a-worker-thread">FAQ</a> has a <code>threading.excepthook</code> recipe if you want any flip to stop the program.</p>
 </section>
 <section id="the-backstop" class="level1">
 <h1>The backstop</h1>
-<p>Some code loads modules without going through <code>sys.meta_path</code>. <code>importlib.util.module_from_spec()</code> with a hand-built spec is the common case. Those imports never reach the finder.</p>
-<p>CPython always emits its <code>RuntimeWarning</code> at the moment it turns the GIL on, however the module was loaded. gilguard installs its own <code>warnings.showwarning</code>, recognizes that one warning, and reports from there. Every other warning passes through to the original handler untouched.</p>
+<p>Some code loads modules without ever walking past the doorman. <code>importlib.util.module_from_spec()</code> with a hand-built spec is the common case. Those imports never reach the finder.</p>
+<p>But CPython always says something when it turns the GIL on. It emits its <code>RuntimeWarning</code> at that exact moment, however the module was loaded. gilguard installs its own <code>warnings.showwarning</code>, recognizes that one warning, and reports from there. Every other warning passes through to the original handler untouched.</p>
 <p>When an import goes through the finder, the warning still fires, but gilguard ignores it and lets the wrapper raise a moment later. That gives you a cleaner traceback that ends at your import statement.</p>
 </section>
 <section id="why-baseexception" class="level1">
 <h1>Why BaseException</h1>
-<p><a href="../reference/GILEnabledError.html#gilguard.GILEnabledError" class="gdls-link gdls-code">GILEnabledError</a> derives from <code>BaseException</code>, the same as <code>KeyboardInterrupt</code> and <code>SystemExit</code>. That’s deliberate. Optional imports in the wild look like this:</p>
+<p><a href="../reference/GILEnabledError.html#gilguard.GILEnabledError" class="gdls-link gdls-code">GILEnabledError</a> derives from <code>BaseException</code>, the same tier as <code>KeyboardInterrupt</code> and <code>SystemExit</code>, and for the same reason: it reports something the surrounding code can’t recover from. Optional imports in the wild look like this:</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span>:</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    <span class="im">import</span> fastjson <span class="im">as</span> json</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="cf">except</span> <span class="pp">ImportError</span>:</span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    <span class="im">import</span> json</span></code></pre></div>
-<p>If the error were an <code>ImportError</code>, or any <code>Exception</code>, that pattern would catch it, fall back, and keep running with the GIL already on. Nothing would be fixed and nothing would be reported. Because <a href="../reference/GILEnabledError.html#gilguard.GILEnabledError" class="gdls-link gdls-code">GILEnabledError</a> sits outside <code>Exception</code>, only code that names it explicitly can catch it.</p>
+<p>If the error were an <code>ImportError</code>, or any <code>Exception</code>, that pattern would catch it, fall back to the pure-Python path, and keep running with the GIL already on. Nothing fixed, nothing reported, and the import that did the damage neatly hidden inside someone else’s <code>except</code> block. Because <a href="../reference/GILEnabledError.html#gilguard.GILEnabledError" class="gdls-link gdls-code">GILEnabledError</a> sits outside <code>Exception</code>, only code that names it explicitly can catch it.</p>
 </section>
 <section id="first-flip-only" class="level1">
 <h1>First flip only</h1>
-<p>gilguard reports once per process. Once the GIL is on, nothing turns it off, and no later import can turn it on again, so there’s nothing left to report. It’s also why the <a href="../user-guide/auditing-an-environment.html">scanner</a> needs a separate interpreter for each package.</p>
+<p>gilguard reports once per process, and that isn’t laziness. Once the GIL is on, nothing turns it off, and no later import can turn it on again, so there’s nothing left to report. It’s also why the <a href="../user-guide/auditing-an-environment.html">scanner</a> needs a separate interpreter for each package.</p>
 </section>
 <section id="when-it-checks-the-interpreter" class="level1">
 <h1>When it checks the interpreter</h1>
-<p>At import time, before installing anything, gilguard checks two things. Is this a free-threaded build? If not, it reports <code>gil-build</code>. Is the GIL already on? If so, it reports <code>already-enabled</code>, with <code>sys.flags.gil</code> to show whether it was forced, plus the third-party extension modules already in <code>sys.modules</code> as suspects. Only after both checks pass does it install the finder and the warning hook.</p>
+<p>At import time, before installing anything, gilguard asks two questions. Is this a free-threaded build? If not, it reports <code>gil-build</code>. Is the GIL already on? If so, it reports <code>already-enabled</code>, with <code>sys.flags.gil</code> to show whether it was forced, plus the third-party extension modules already in <code>sys.modules</code> as suspects. Only after both answers come back clean does it install the finder and the warning hook.</p>
 
 
 </section>

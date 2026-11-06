@@ -8,9 +8,9 @@ Raise a detailed error the moment an import re-enables the GIL on free-threaded 
 
 Full documentation: [mkennedy.codes/docs/gilguard](https://mkennedy.codes/docs/gilguard/)
 
-On a free-threaded build (3.13t, 3.14t, 3.15t), importing an extension module that doesn't declare free-threading support quietly turns the GIL back on for the rest of the process. CPython prints one `RuntimeWarning` and moves on. Once it's on, it can't be turned off.
+The whole point of a free-threaded build (3.13t, 3.14t, 3.15t) is that threads run Python code in parallel. It takes one import to lose that. When CPython loads an extension module that hasn't declared free-threading support, it turns the GIL back on for the rest of the process, prints a single `RuntimeWarning`, and keeps going. Your threads go back to taking turns, your throughput graph flatlines, and the only clue is one line in a startup log naming a private module you've never heard of. Once the GIL is on, nothing turns it off.
 
-gilguard turns that into an exception that names the module, the package it came from, and the line of your code that pulled it in.
+gilguard turns that line into an exception that names the module, the package it came from, and the line of your code that pulled it in.
 
 ## Installation
 
@@ -20,7 +20,7 @@ uv pip install gilguard
 
 ## Usage
 
-Make it the first import in your program:
+Make it the first import in your program. Nothing to call, nothing to configure:
 
 ```python
 import gilguard  # must be first
@@ -48,7 +48,7 @@ Options:
   - Run `python -m gilguard` to list every installed package that does this.
 ```
 
-The report is also available as data on `exc.report` (`GILReport`, with `.as_dict()`).
+`gilneeder` is one of gilguard's test fixtures, a tiny C extension built to misbehave so the real ones don't have to. The report is also available as data on `exc.report` (`GILReport`, with `.as_dict()`), so you can log it or fail a build on it.
 
 The options at the end of the report are the short version. [Fixing what it finds](https://mkennedy.codes/docs/gilguard/user-guide/fixing-an-offender.html) has the longer one, including how to declare free-threading support in an extension you own.
 
@@ -59,7 +59,7 @@ The options at the end of the report are the short version. [Fixing what it find
 - The GIL already being on when gilguard is imported. The report says whether `PYTHON_GIL=1` or `-X gil=1` forced it, or lists the third-party extension modules already loaded as suspects.
 - A standard (GIL) build. gilguard raises there, since the GIL is always on.
 
-`GILEnabledError` derives from `BaseException`, not `Exception`. The GIL can't be turned back off, so the common optional-import pattern (`try: import x` / `except ImportError:`) must not be able to swallow it and keep running with the GIL on.
+`GILEnabledError` derives from `BaseException`, not `Exception`, the same tier as `KeyboardInterrupt`. The GIL can't be turned back off, so the common optional-import pattern (`try: import x` / `except ImportError:`) must not be able to swallow it, fall back to the pure-Python path, and keep running with the GIL on as if nothing happened.
 
 ## Imports in worker threads
 
@@ -101,7 +101,7 @@ Or call `gilguard.install(action=...)` / `gilguard.uninstall()` directly.
 
 ## Finding every offender
 
-A process can only detect the first module that flips the GIL. After that it's already on. To audit a whole environment, `python -m gilguard` imports each installed top-level package in its own fresh interpreter:
+A single process can only tell you about the first module that flips the GIL. After that it's already on, and the rest have nothing left to flip. To audit a whole environment, `python -m gilguard` gives each installed top-level package its own fresh interpreter, so none of them can hide behind the one that went first:
 
 ```text
 $ python -m gilguard
@@ -112,7 +112,7 @@ GIL    gilneeder                via gilneeder._speedups  [gilneeder 1.2.0]
 
 Pass module names to check specific ones, `--json` for machine-readable output. Exits 1 if any offender is found, so it works as a CI gate. Modules that fail to import on their own are listed as `ERROR` but don't fail the run, since they couldn't be checked. Add `--strict` to fail on those too. Installing gilguard also puts a `gilguard` command on your path that runs the same scan.
 
-Extensions a package loads lazily on first use won't show up in the scan. Run your test suite with gilguard loaded as a plugin to catch those:
+The scan is a wide net with one hole: extensions a package loads lazily on first use won't show up in it. Run your test suite with gilguard loaded as a plugin to catch those:
 
 ```bash
 pytest -p gilguard

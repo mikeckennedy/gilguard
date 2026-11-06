@@ -157,16 +157,16 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
   <link rel="alternate" type="text/markdown" href="fixing-an-offender.md">
   <link rel="canonical" href="https://mkennedy.codes/docs/gilguard/user-guide/fixing-an-offender.html">
-  <meta name="description" content="The report tells you which extension module turned the GIL on and which distribution shipped it. This page is about what to do next. The options are in...">
+  <meta name="description" content="You have a name. The report says which extension module turned the GIL on and which distribution shipped it, and that’s most of the detective work...">
   <meta property="og:type" content="website">
   <meta property="og:title" content="Fixing what it finds – gilguard | gilguard">
-  <meta property="og:description" content="The report tells you which extension module turned the GIL on and which distribution shipped it. This page is about what to do next. The options are in...">
+  <meta property="og:description" content="You have a name. The report says which extension module turned the GIL on and which distribution shipped it, and that’s most of the detective work...">
   <meta property="og:url" content="https://mkennedy.codes/docs/gilguard/user-guide/fixing-an-offender.html">
   <meta property="og:site_name" content="gilguard">
   <meta property="og:image" content="https://mkennedy-shared.nyc3.digitaloceanspaces.com/github/gilguard-banner.png">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Fixing what it finds – gilguard | gilguard">
-  <meta name="twitter:description" content="The report tells you which extension module turned the GIL on and which distribution shipped it. This page is about what to do next. The options are in...">
+  <meta name="twitter:description" content="You have a name. The report says which extension module turned the GIL on and which distribution shipped it, and that’s most of the detective work...">
   <meta name="twitter:image" content="https://mkennedy-shared.nyc3.digitaloceanspaces.com/github/gilguard-banner.png">
 </head>
 
@@ -342,10 +342,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<p>The report tells you which extension module turned the GIL on and which distribution shipped it. This page is about what to do next. The options are in rough order of effort, so start at the top.</p>
+<p>You have a name. The report says which extension module turned the GIL on and which distribution shipped it, and that’s most of the detective work done. This page is about what to do with the name. The options are in rough order of effort, so start at the top and stop when one works.</p>
 <section id="upgrade-the-distribution" class="level1">
 <h1>Upgrade the distribution</h1>
-<p>Most offenders are packages whose maintainers have already done the work, just not in the version you have. Upgrade and check again:</p>
+<p>Most offenders are packages whose maintainers have already done the work, just not in the version you have pinned. Upgrade and ask again:</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> pip install <span class="at">--upgrade</span> gilneeder</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> <span class="at">-m</span> gilguard gilneeder</span></code></pre></div>
 <p>The wheel filename tells you what you got. A free-threaded wheel carries a <code>t</code> in its ABI tag, such as <code>cp314t</code>, and the <code>File</code> line of the report shows the same tag in the module’s filename. If the package has no <code>t</code> wheels for your platform, pip or uv built it from source, and nothing in that build declares free-threading support unless the package’s own code does.</p>
@@ -366,7 +366,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="report-it-upstream" class="level1">
 <h1>Report it upstream</h1>
-<p>If the latest release still flips the GIL, the project may not know, or may not know which of its modules does it. A package can ship dozens of extension modules, and the one that matters is often a private helper nobody looks at. Open an issue with the report’s <code>Module</code>, <code>File</code> and <code>Distribution</code> lines and your Python version. The <code>Import chain</code> line helps too, since it shows how the module gets loaded.</p>
+<p>If the latest release still flips the GIL, the project may not know, or may know but not which of its modules does it. A package can ship dozens of extension modules, and the one that matters is often a private helper nobody has looked at in years. Open an issue with the report’s <code>Module</code>, <code>File</code> and <code>Distribution</code> lines and your Python version. The <code>Import chain</code> line helps too, since it shows how the module gets loaded.</p>
 <p>For maintainers, the community <a href="https://py-free-threading.github.io/porting-extensions/">porting guide for extension modules</a> and CPython’s <a href="https://docs.python.org/3/howto/free-threading-extensions.html">free-threading HOWTO</a> cover what’s involved.</p>
 </section>
 <section id="replace-or-drop-it" class="level1">
@@ -375,15 +375,15 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="keep-running-while-you-wait" class="level1">
 <h1>Keep running while you wait</h1>
-<p>If you can’t fix it today but want the app on a free-threaded build anyway, set <code>GILGUARD_ACTION=warn</code>. The program keeps running with the GIL on, you get the same report in your logs, and you still find out the day a new dependency starts doing the same thing. Switch back to <code>raise</code> once the list is empty. <a href="../user-guide/configuration.html">Configuration</a> covers the modes.</p>
+<p>If you can’t fix it today but want the app on a free-threaded build anyway, set <code>GILGUARD_ACTION=warn</code>. The program keeps running with the GIL on, the same report lands in your logs, and you still find out the day a new dependency starts doing the same thing. It’s a holding pattern, not a destination. Switch back to <code>raise</code> once the list is empty. <a href="../user-guide/configuration.html">Configuration</a> covers the modes.</p>
 </section>
 <section id="last-resort-python_gil0" class="level1">
 <h1>Last resort: PYTHON_GIL=0</h1>
-<p><code>PYTHON_GIL=0</code> tells CPython to keep the GIL off even when a module doesn’t declare support. The missing declaration might be an oversight, or the module might rely on the GIL for correctness, and the only way to know is to ask the maintainers or read the code. If it’s the latter, you’ve traded an error for data races. gilguard never fires under <code>PYTHON_GIL=0</code> because the GIL never comes on, so you also lose the guard for every other package. Use it to test one package you’ve checked, not as the way you run production.</p>
+<p><code>PYTHON_GIL=0</code> tells CPython to keep the GIL off even when a module doesn’t declare support. The missing declaration might be an oversight, or the module might rely on the GIL for correctness, and the only way to know is to ask the maintainers or read the code. If it’s the latter, you’ve traded an error you can read for data races you can’t. gilguard never fires under <code>PYTHON_GIL=0</code> because the GIL never comes on, so you also lose the guard for every other package. Use it to test one package you’ve checked, not as the way you run production.</p>
 </section>
 <section id="if-the-extension-is-yours" class="level1">
 <h1>If the extension is yours</h1>
-<p>Declaring support is one slot, and it’s the difference between gilguard’s two test fixtures. <code>gilneeder</code> uses single-phase initialization and declares nothing, so it turns the GIL on. <code>ftsafe</code> uses multi-phase initialization and adds the slot:</p>
+<p>Declaring support is one slot, and that one slot is the entire difference between gilguard’s two test fixtures. <code>gilneeder</code> uses single-phase initialization and declares nothing, so it turns the GIL on. <code>ftsafe</code> uses multi-phase initialization and adds the slot:</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="dt">static</span> PyModuleDef_Slot slots<span class="op">[]</span> <span class="op">=</span> <span class="op">{</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span>Py_mod_gil<span class="op">,</span> Py_MOD_GIL_NOT_USED<span class="op">},</span></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span><span class="dv">0</span><span class="op">,</span> NULL<span class="op">},</span></span>

@@ -15,6 +15,7 @@ All notable changes to gilguard are documented here. The format follows [Keep a 
 - The docs build now installs gilguard into the Great Docs environment with `GILGUARD_ACTION=off`, so `llms-full.txt` (full API plus the user guide) is generated. It was skipped before, while the skill linked to it.
 - Docstrings gained examples, and the module docstring points at the scanner and `pytest -p gilguard`.
 - The README mentions the `gilguard` command and recommends `pytest -p gilguard` over an import in `conftest.py`, matching the Tests and CI page.
+- The landing page, README and every guide page open with the situation gilguard is for, rather than a definition. The technical content is unchanged.
 
 ## [0.2.0] - 2026-11-05
 

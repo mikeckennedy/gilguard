@@ -2,7 +2,7 @@
 title: Tests and CI
 ---
 
-There are two ways to catch GIL problems before they ship, and they cover different gaps. The scanner checks every installed package at import time. Running your tests under gilguard catches extensions that only load when a code path runs. Use both.
+There are two ways to catch GIL problems before they ship, and they're two different nets. The scanner is wide: it checks every installed package, but only what each one loads at import time. Your test suite is fine-meshed: it catches extensions that only load when a code path runs, but only on the paths your tests actually exercise. Use both.
 
 ## Run pytest with gilguard loaded
 
@@ -58,7 +58,7 @@ jobs:
         run: .venv/bin/python -m pytest -p gilguard
 ```
 
-The scan prints one line per offender and finishes in seconds for a typical environment, so it's cheap to run on every push. `--strict` also fails the job when a package can't be imported at all, so a broken install can't pass as "no offenders found". Drop it if your environment has packages with optional dependencies you don't install.
+The scan prints one line per offender and finishes in seconds for a typical environment, so it's cheap enough to run on every push and boring enough that you'll forget it's there until the day it saves you. `--strict` also fails the job when a package can't be imported at all, so a broken install can't pass as "no offenders found". Drop it if your environment has packages with optional dependencies you don't install.
 
 A passing job means the imports that ran kept the GIL off. It doesn't mean the code is thread-safe, or that it gets faster with threads. Those need their own tests.
 

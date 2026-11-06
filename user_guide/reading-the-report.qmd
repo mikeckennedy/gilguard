@@ -2,11 +2,11 @@
 title: Reading the report
 ---
 
-Every `GILEnabledError` carries a `GILReport`. The exception message is the report rendered as text. `exc.report` is the same thing as data.
+Every `GILEnabledError` carries a `GILReport`. The exception message is the report rendered as text, and `exc.report` is the same thing as data. Think of it as a case file: six lines, each answering a question you would otherwise be asking a debugger at the worst possible moment.
 
 ## The import report
 
-This is the one you'll see most. An import just turned the GIL on:
+This is the one you'll see most. An import just turned the GIL on, and gilguard caught it in the act:
 
 ```text
 gilguard.GILEnabledError: Importing 'gilneeder._speedups' re-enabled the GIL.
@@ -19,23 +19,23 @@ gilguard.GILEnabledError: Importing 'gilneeder._speedups' re-enabled the GIL.
   Imported by:  .../site-packages/gilneeder/__init__.py:1
 ```
 
-Here's what each line tells you:
+Here's what each line tells you, top to bottom:
 
 ::: {.fields}
 Module
-:   The extension module that doesn't declare free-threading support. This is the thing that actually flipped the GIL.
+:   The extension module that doesn't declare free-threading support. This is the thing that actually flipped the GIL, and it's usually a private helper you've never typed.
 
 File
 :   Where that module lives. The filename shows the ABI it was built for. A `cp314t` tag means a free-threaded wheel was installed and the module just doesn't declare support yet.
 
 Distribution
-:   The installed package that shipped the module, and its version. This is what you'd upgrade, pin or replace.
+:   The installed package that shipped the module, and its version. This is the name you'd upgrade, pin, replace, or put in the title of a bug report.
 
 Import chain
-:   Every module on the way down, starting with the one your code imported. Useful when the offender is a dependency of a dependency.
+:   Every module on the way down, starting with the one your code imported. This is the line to read when the offender is a dependency of a dependency of something you installed for one function.
 
 Your code
-:   The import statement where the chain started, usually in your own code.
+:   The import statement where the chain started, usually in your own code. This is where you'd go first.
 
 Imported by
 :   The statement that loaded the offending module, usually inside the package. It's left out when it's the same line as "Your code".
@@ -47,7 +47,7 @@ After the details, the report lists your options: upgrade to a release with free
 
 ## Two other reasons
 
-The GIL can also be on before gilguard gets a chance to watch.
+The GIL can also be on before gilguard gets a chance to watch. The report changes shape for those, since there's no import to point at.
 
 **It was already on when gilguard was imported.** If the GIL was forced on, the report says so:
 
@@ -70,7 +70,7 @@ gilguard.GILEnabledError: The GIL was already enabled before gilguard was import
 Make `import gilguard` the very first import in your program.
 ```
 
-If that list is empty, something ran before your code did: a `sitecustomize` module or a `.pth` file are the usual suspects.
+If that list is empty, something ran before your code did. A `sitecustomize` module or a `.pth` file are the usual suspects.
 
 **It's a standard build.** The GIL is always on, so gilguard raises with the interpreter path and a pointer to `GILGUARD_ACTION=off`.
 
@@ -109,9 +109,9 @@ except gilguard.GILEnabledError as e:
 ::: {.callout-note}
 ## Re-raise if you catch it
 
-Catching `GILEnabledError` doesn't put things back. The GIL is on for the rest of the process either way. Catch it to log or report, then let it go.
+Catching `GILEnabledError` doesn't put anything back. The GIL is on for the rest of the process either way. Catch it to log or report, then let it go.
 :::
 
 ## Only the first one
 
-gilguard reports the first import that turns the GIL on and stays quiet after that. Once it's on, later imports can't turn it on again, so there's nothing more to catch in that process. To find every offender, use [`python -m gilguard`](auditing-an-environment.qmd), which gives each package its own interpreter.
+gilguard reports the first import that turns the GIL on and stays quiet after that. Once it's on, later imports can't turn it on again, so there's nothing more to catch in that process. One process, one confession. To find every offender, use [`python -m gilguard`](auditing-an-environment.qmd), which gives each package its own interpreter.
