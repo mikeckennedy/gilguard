@@ -202,7 +202,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
             <ul class="navbar-nav navbar-nav-scroll ms-auto">
   <li class="nav-item">
     <span class="nav-link">
-<div id="github-widget" data-owner="mikeckennedy" data-repo="gilguard" data-stars="0" data-forks="0"></div>
+<div id="github-widget" data-owner="mikeckennedy" data-repo="gilguard" data-stars="1" data-forks="0"></div>
     </span>
   </li>  
 </ul>
@@ -342,6 +342,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>The wrapped methods check <code>sys._is_gil_enabled()</code> before and after they run. If the GIL was off before and is on after, that module turned it on. gilguard builds the report on the spot, while the import is still on the stack.</p>
 <p>That timing is what makes the report specific. While an import is in progress, gilguard keeps track of which modules are loading inside which (the import chain), and it walks the Python stack to find the import statements involved. The outermost one outside the import machinery is “Your code”. The innermost is “Imported by”.</p>
 <p>The chain is tracked per thread, so imports running at the same time on different threads each get their own chain.</p>
+<p>The error is raised in the thread that ran the import. If that’s a worker thread, only that thread unwinds: the main thread keeps going with the GIL on, and the process can still exit 0. gilguard leaves that alone on purpose, since killing the process from inside an import would skip cleanup and surprise most programs. The <a href="../user-guide/faq.html#what-happens-if-the-import-runs-in-a-worker-thread">FAQ</a> has a <code>threading.excepthook</code> recipe if you want any flip to stop the program.</p>
 </section>
 <section id="the-backstop" class="level1">
 <h1>The backstop</h1>

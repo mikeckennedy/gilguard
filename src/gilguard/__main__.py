@@ -69,6 +69,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument('--json', action='store_true', help='print results as JSON')
     parser.add_argument('--timeout', type=float, default=60.0, help='seconds per module (default 60)')
     parser.add_argument('-j', '--jobs', type=int, default=os.cpu_count() or 4)
+    parser.add_argument(
+        '--strict',
+        action='store_true',
+        help='also exit 1 when a module fails to import or times out, not only when it re-enables the GIL',
+    )
     args = parser.parse_args(argv)
 
     if not gilguard.is_free_threaded_build():
@@ -95,12 +100,15 @@ def main(argv: list[str] | None = None) -> int:
         for mod, r in errors.items():
             print(f'ERROR  {mod:<24} {r["error"]}')
         print(f'\n{len(results)} checked: {ok} ok, {len(offenders)} re-enable the GIL, {len(errors)} failed to import.')
+        if errors and not args.strict:
+            print('Modules that failed to import were not checked. Pass --strict to fail the run on them.')
         print(
             'Note: only import-time loads are checked. '
             'Extensions a package loads lazily on first use will not show up here.'
         )
 
-    return 1 if any(r['status'] == 'gil' for r in results.values()) else 0
+    failing = ('gil', 'error') if args.strict else ('gil',)
+    return 1 if any(r['status'] in failing for r in results.values()) else 0
 
 
 if __name__ == '__main__':

@@ -59,6 +59,28 @@ The report is also available as data on `exc.report` (`GILReport`, with `.as_dic
 
 `GILEnabledError` derives from `BaseException`, not `Exception`. The GIL can't be turned back off, so the common optional-import pattern (`try: import x` / `except ImportError:`) must not be able to swallow it and keep running with the GIL on.
 
+## Imports in worker threads
+
+The error is raised in the thread that ran the import, like any other exception. If that is a worker thread, the thread dies and prints the report, but the main thread keeps running with the GIL on and the process can exit 0. `concurrent.futures` holds the error until you call `.result()`. gilguard does not kill the process for you. If you want a flip in any thread to stop the program, install a `threading.excepthook`:
+
+```python
+import os, threading
+import gilguard
+
+_prev_hook = threading.excepthook
+
+def _fail_fast(args):
+    _prev_hook(args)  # print the report as usual
+    if issubclass(args.exc_type, gilguard.GILEnabledError):
+        os._exit(1)
+
+threading.excepthook = _fail_fast
+```
+
+## What passing means
+
+A clean run means none of the imports that actually ran turned the GIL back on. It does not mean your code or your dependencies are thread-safe, and it does not mean your program gets faster with more threads. Extensions loaded lazily on a code path you didn't exercise aren't checked either.
+
 ## Configuration
 
 `GILGUARD_ACTION` environment variable:
@@ -84,7 +106,7 @@ GIL    gilneeder                via gilneeder._speedups  [gilneeder 1.2.0]
 8 checked: 7 ok, 1 re-enable the GIL, 0 failed to import.
 ```
 
-Pass module names to check specific ones, `--json` for machine-readable output. Exits 1 if any offender is found, so it works as a CI gate. Extensions a package loads lazily on first use won't show up in the scan. Run your test suite with `import gilguard` in `conftest.py` to catch those.
+Pass module names to check specific ones, `--json` for machine-readable output. Exits 1 if any offender is found, so it works as a CI gate. Modules that fail to import on their own are listed as `ERROR` but don't fail the run, since they couldn't be checked. Add `--strict` to fail on those too. Extensions a package loads lazily on first use won't show up in the scan. Run your test suite with `import gilguard` in `conftest.py` to catch those.
 
 ## Development
 

@@ -26,6 +26,41 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
 </style>
 
 
@@ -166,7 +201,7 @@ ul.task-list li input[type="checkbox"] {
             <ul class="navbar-nav navbar-nav-scroll ms-auto">
   <li class="nav-item">
     <span class="nav-link">
-<div id="github-widget" data-owner="mikeckennedy" data-repo="gilguard" data-stars="0" data-forks="0"></div>
+<div id="github-widget" data-owner="mikeckennedy" data-repo="gilguard" data-stars="1" data-forks="0"></div>
     </span>
   </li>  
 </ul>
@@ -271,6 +306,8 @@ ul.task-list li input[type="checkbox"] {
   <ul class="collapse">
   <li><a href="#does-gilguard-slow-down-imports" id="toc-does-gilguard-slow-down-imports" class="nav-link active" data-scroll-target="#does-gilguard-slow-down-imports">Does gilguard slow down imports?</a></li>
   <li><a href="#can-i-just-catch-gilenablederror-and-carry-on" id="toc-can-i-just-catch-gilenablederror-and-carry-on" class="nav-link" data-scroll-target="#can-i-just-catch-gilenablederror-and-carry-on">Can I just catch GILEnabledError and carry on?</a></li>
+  <li><a href="#what-happens-if-the-import-runs-in-a-worker-thread" id="toc-what-happens-if-the-import-runs-in-a-worker-thread" class="nav-link" data-scroll-target="#what-happens-if-the-import-runs-in-a-worker-thread">What happens if the import runs in a worker thread?</a></li>
+  <li><a href="#if-gilguard-passes-is-my-app-thread-safe" id="toc-if-gilguard-passes-is-my-app-thread-safe" class="nav-link" data-scroll-target="#if-gilguard-passes-is-my-app-thread-safe">If gilguard passes, is my app thread-safe?</a></li>
   <li><a href="#a-package-ships-cp314t-wheels.-why-is-it-flagged" id="toc-a-package-ships-cp314t-wheels.-why-is-it-flagged" class="nav-link" data-scroll-target="#a-package-ships-cp314t-wheels.-why-is-it-flagged">A package ships cp314t wheels. Why is it flagged?</a></li>
   <li><a href="#should-i-run-with-python_gil0-to-make-the-error-go-away" id="toc-should-i-run-with-python_gil0-to-make-the-error-go-away" class="nav-link" data-scroll-target="#should-i-run-with-python_gil0-to-make-the-error-go-away">Should I run with PYTHON_GIL=0 to make the error go away?</a></li>
   <li><a href="#does-it-work-on-python-3.13" id="toc-does-it-work-on-python-3.13" class="nav-link" data-scroll-target="#does-it-work-on-python-3.13">Does it work on Python 3.13?</a></li>
@@ -308,6 +345,27 @@ ul.task-list li input[type="checkbox"] {
 <section id="can-i-just-catch-gilenablederror-and-carry-on" class="level1">
 <h1>Can I just catch GILEnabledError and carry on?</h1>
 <p>You can, by naming it in an <code>except</code>, but it doesn’t help. The GIL stays on for the rest of the process either way. If you want the program to keep running while you collect reports, use <code>GILGUARD_ACTION=warn</code>. That’s what it’s for.</p>
+</section>
+<section id="what-happens-if-the-import-runs-in-a-worker-thread" class="level1">
+<h1>What happens if the import runs in a worker thread?</h1>
+<p><a href="../reference/GILEnabledError.html#gilguard.GILEnabledError" class="gdls-link gdls-code">GILEnabledError</a> is raised in that thread, like any exception. The thread dies and prints the report, but the main thread keeps running with the GIL on, and the process can exit 0. With <code>concurrent.futures</code>, the error waits in the future until you call <code>.result()</code>. <code>BaseException</code> stops ordinary <code>except</code> blocks from swallowing it. It doesn’t make the whole process stop.</p>
+<p>If you want a flip in any thread to end the program, add a <code>threading.excepthook</code> right after importing gilguard:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os, threading</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> gilguard</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>_prev_hook <span class="op">=</span> threading.excepthook</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> _fail_fast(args):</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    _prev_hook(args)  <span class="co"># print the report as usual</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="bu">issubclass</span>(args.exc_type, gilguard.GILEnabledError):</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>        os._exit(<span class="dv">1</span>)</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>threading.excepthook <span class="op">=</span> _fail_fast</span></code></pre></div>
+<p><code>os._exit</code> skips cleanup handlers. That’s usually what you want once the GIL is on for good, but swap in your own shutdown if not.</p>
+</section>
+<section id="if-gilguard-passes-is-my-app-thread-safe" class="level1">
+<h1>If gilguard passes, is my app thread-safe?</h1>
+<p>No.&nbsp;A clean run means the imports that actually ran didn’t turn the GIL back on. It says nothing about data races in your code or your dependencies, and nothing about whether threads make your program faster. Imports on code paths you didn’t exercise aren’t checked either.</p>
 </section>
 <section id="a-package-ships-cp314t-wheels.-why-is-it-flagged" class="level1">
 <h1>A package ships cp314t wheels. Why is it flagged?</h1>

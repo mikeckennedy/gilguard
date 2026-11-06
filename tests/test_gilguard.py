@@ -148,3 +148,44 @@ def test_scan_cli():
     assert res['gilneeder']['report']['module'] == 'gilneeder._speedups'
     assert res['ftsafe']['status'] == 'ok'
     assert res['json']['status'] == 'ok'
+
+
+def test_error_in_worker_thread_does_not_stop_the_process():
+    # Documented boundary: the error is raised in the importing thread only.
+    p = run("""
+        import gilguard, threading
+        t = threading.Thread(target=lambda: __import__('gilneeder'))
+        t.start(); t.join()
+        print('main continued', gilguard.gil_enabled())
+        """)
+    assert p.returncode == 0
+    assert 'main continued True' in p.stdout
+    assert 'GILEnabledError' in p.stderr
+
+
+def test_threading_excepthook_recipe_fails_fast():
+    # The fail-fast recipe from the docs.
+    p = run("""
+        import os, threading, gilguard
+        _prev = threading.excepthook
+        def _hook(args):
+            _prev(args)
+            if issubclass(args.exc_type, gilguard.GILEnabledError):
+                os._exit(1)
+        threading.excepthook = _hook
+        t = threading.Thread(target=lambda: __import__('gilneeder'))
+        t.start(); t.join()
+        print('main continued')
+        """)
+    assert p.returncode == 1
+    assert 'main continued' not in p.stdout
+    assert 'GILEnabledError' in p.stderr
+
+
+@pytest.mark.parametrize(('strict', 'code'), [(False, 0), (True, 1)])
+def test_scan_cli_import_errors_and_strict(strict, code):
+    args = [sys.executable, '-m', 'gilguard', 'ftsafe', 'gilguard_no_such_module']
+    p = subprocess.run(args + (['--strict'] if strict else []), capture_output=True, text=True)
+    assert p.returncode == code, p.stdout + p.stderr
+    assert 'ERROR  gilguard_no_such_module' in p.stdout
+    assert ('Pass --strict' in p.stdout) is not strict

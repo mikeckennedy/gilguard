@@ -50,13 +50,15 @@ jobs:
           uv pip install -e . gilguard pytest
 
       - name: Scan installed packages
-        run: .venv/bin/python -m gilguard
+        run: .venv/bin/python -m gilguard --strict
 
       - name: Run tests with gilguard loaded
         run: .venv/bin/python -m pytest -p gilguard
 ```
 
-The scan prints one line per offender and finishes in seconds for a typical environment, so it's cheap to run on every push.
+The scan prints one line per offender and finishes in seconds for a typical environment, so it's cheap to run on every push. `--strict` also fails the job when a package can't be imported at all, so a broken install can't pass as "no offenders found". Drop it if your environment has packages with optional dependencies you don't install.
+
+A passing job means the imports that ran kept the GIL off. It doesn't mean the code is thread-safe, or that it gets faster with threads. Those need their own tests.
 
 
 # Standard builds in the same matrix

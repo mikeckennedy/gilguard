@@ -10,6 +10,32 @@ Not noticeably. It adds a wrapper around each loader and a couple of `sys._is_gi
 
 You can, by naming it in an `except`, but it doesn't help. The GIL stays on for the rest of the process either way. If you want the program to keep running while you collect reports, use `GILGUARD_ACTION=warn`. That's what it's for.
 
+## What happens if the import runs in a worker thread?
+
+`GILEnabledError` is raised in that thread, like any exception. The thread dies and prints the report, but the main thread keeps running with the GIL on, and the process can exit 0. With `concurrent.futures`, the error waits in the future until you call `.result()`. `BaseException` stops ordinary `except` blocks from swallowing it. It doesn't make the whole process stop.
+
+If you want a flip in any thread to end the program, add a `threading.excepthook` right after importing gilguard:
+
+```python
+import os, threading
+import gilguard
+
+_prev_hook = threading.excepthook
+
+def _fail_fast(args):
+    _prev_hook(args)  # print the report as usual
+    if issubclass(args.exc_type, gilguard.GILEnabledError):
+        os._exit(1)
+
+threading.excepthook = _fail_fast
+```
+
+`os._exit` skips cleanup handlers. That's usually what you want once the GIL is on for good, but swap in your own shutdown if not.
+
+## If gilguard passes, is my app thread-safe?
+
+No. A clean run means the imports that actually ran didn't turn the GIL back on. It says nothing about data races in your code or your dependencies, and nothing about whether threads make your program faster. Imports on code paths you didn't exercise aren't checked either.
+
 ## A package ships cp314t wheels. Why is it flagged?
 
 A free-threaded wheel means the package was compiled for the free-threaded ABI. It doesn't mean every extension module in it declares `Py_mod_gil`. Some projects publish `t` wheels before they've audited everything, and those modules still turn the GIL on when they load. The report names the specific module, which is useful in a bug report to the project.

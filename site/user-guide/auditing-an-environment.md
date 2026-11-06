@@ -20,7 +20,7 @@ Note: only import-time loads are checked. Extensions a package loads lazily on f
 
 Installing gilguard also gives you a `gilguard` command that runs the same scan.
 
-Each `GIL` line gives the package you'd import, the extension module that flips the GIL, and the distribution and version it came from. `ERROR` lines are packages that failed to import on their own. That's often a missing optional dependency, and it doesn't count against the result.
+Each `GIL` line gives the package you'd import, the extension module that flips the GIL, and the distribution and version it came from. `ERROR` lines are packages that failed to import on their own. That's often a missing optional dependency. By default it doesn't count against the result, but it also means that package wasn't checked. Pass `--strict` to treat it as a failure.
 
 With no arguments it checks every top-level module of every installed distribution. It skips private names (starting with `_`) and packaging tools such as `pip`, `setuptools` and `wheel`.
 
@@ -43,6 +43,7 @@ That's quicker than a full scan, and it's how you'd re-check one package after a
 | `--json` | Print the results as JSON instead of the table. |
 | `--timeout SECONDS` | Give up on a module after this long. The default is 60. A timeout shows as an error. |
 | `-j N`, `--jobs N` | How many modules to check at once. It defaults to your CPU count. |
+| `--strict` | Exit 1 when a module fails to import or times out, not only when one re-enables the GIL. |
 
 
 # JSON output
@@ -71,13 +72,13 @@ That's quicker than a full scan, and it's how you'd re-check one package after a
 
 # Exit codes
 
-| Code | Meaning                                                             |
-|------|---------------------------------------------------------------------|
-| `0`  | No module re-enabled the GIL.                                       |
-| `1`  | At least one did.                                                   |
-| `2`  | This isn't a free-threaded interpreter, so there's nothing to scan. |
+| Code | Meaning |
+|----|----|
+| `0` | No module re-enabled the GIL. Without `--strict`, some may have failed to import and gone unchecked. |
+| `1` | At least one did. With `--strict`, also at least one failed to import or timed out. |
+| `2` | This isn't a free-threaded interpreter, so there's nothing to scan. |
 
-Because it exits 1 on any offender, the scan works as a CI gate without extra scripting. [Tests and CI](tests-and-ci.md) has an example.
+Because it exits 1 on any offender, the scan works as a CI gate without extra scripting. Use `--strict` in CI if a module that couldn't be checked should fail the build rather than pass quietly. [Tests and CI](tests-and-ci.md) has an example.
 
 
 # What it can't see

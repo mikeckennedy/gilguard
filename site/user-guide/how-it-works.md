@@ -13,6 +13,8 @@ That timing is what makes the report specific. While an import is in progress, g
 
 The chain is tracked per thread, so imports running at the same time on different threads each get their own chain.
 
+The error is raised in the thread that ran the import. If that's a worker thread, only that thread unwinds: the main thread keeps going with the GIL on, and the process can still exit 0. gilguard leaves that alone on purpose, since killing the process from inside an import would skip cleanup and surprise most programs. The [FAQ](faq.md#what-happens-if-the-import-runs-in-a-worker-thread) has a `threading.excepthook` recipe if you want any flip to stop the program.
+
 
 # The backstop
 
