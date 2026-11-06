@@ -391,7 +391,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p><a href="../reference/uninstall.html#gilguard.uninstall" class="gdls-link gdls-code">uninstall()</a> removes the hook. Imports after that can turn the GIL on without a report. Call <a href="../reference/install.html#gilguard.install" class="gdls-link gdls-code">install()</a> again to resume.</p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>gilguard.uninstall()</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> legacy_thing  <span class="co"># unguarded</span></span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>gilguard.install()</span></code></pre></div>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>gilguard.install()</span></code></pre></div>
 </section>
 <section id="python_gil" class="level1">
 <h1>PYTHON_GIL</h1>
@@ -405,7 +406,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h1>Helpers</h1>
 <p>Two small functions are handy whether or not the guard is installed:</p>
 <div class="sourceCode" id="cb4"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>gilguard.is_free_threaded_build()  <span class="co"># True on a 't' build</span></span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>gilguard.gil_enabled()             <span class="co"># True if the GIL is on right now</span></span></code></pre></div>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>gilguard.gil_enabled()  <span class="co"># True if the GIL is on right now</span></span></code></pre></div>
 <p>They answer different questions. A free-threaded build can still have the GIL on, and that’s exactly the case gilguard exists for.</p>
 
 

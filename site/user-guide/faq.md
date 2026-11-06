@@ -23,10 +23,12 @@ import gilguard
 
 _prev_hook = threading.excepthook
 
+
 def _fail_fast(args):
     _prev_hook(args)  # print the report as usual
     if issubclass(args.exc_type, gilguard.GILEnabledError):
         os._exit(1)
+
 
 threading.excepthook = _fail_fast
 ```

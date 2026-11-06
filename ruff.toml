@@ -4,6 +4,9 @@ format.quote-style = "single"
 # The oldest Python gilguard supports (requires-python in pyproject.toml): the 3.13t free-threaded build.
 target-version = "py313"
 
-# pycodestyle errors, Pyflakes and import sorting. Ruff's default excludes (venv, .venv, build, dist, caches) and
-# .gitignore cover what shouldn't be checked.
+# site/ is the built docs site. Its Markdown companions carry code blocks Great Docs generates, which nothing here can
+# reformat. Ruff's default excludes (venv, .venv, build, dist, caches) and .gitignore cover the rest.
+extend-exclude = ["site"]
+
+# pycodestyle errors, Pyflakes and import sorting.
 lint.select = ["E", "F", "I"]

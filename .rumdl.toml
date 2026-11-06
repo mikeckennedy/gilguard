@@ -38,7 +38,7 @@ tables = false
 #front-matter-title = "title"
 
 [rules.MD044]
-names = ["gilguard", "CPython", "GitHub", "Markdown"]
+names = ["gilguard", "GILGUARD_ACTION", "CPython", "GitHub", "Markdown"]
 
 [rules.MD048]
 style = "backtick"

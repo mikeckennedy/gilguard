@@ -45,6 +45,7 @@ gilguard.install(action='warn')
 ```python
 gilguard.uninstall()
 import legacy_thing  # unguarded
+
 gilguard.install()
 ```
 
@@ -61,7 +62,7 @@ Two small functions are handy whether or not the guard is installed:
 
 ```python
 gilguard.is_free_threaded_build()  # True on a 't' build
-gilguard.gil_enabled()             # True if the GIL is on right now
+gilguard.gil_enabled()  # True if the GIL is on right now
 ```
 
 They answer different questions. A free-threaded build can still have the GIL on, and that's exactly the case gilguard exists for.
