@@ -246,6 +246,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
  <span class="menu-text">Reading the report</span></a>
   </div>
 </li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../user-guide/fixing-an-offender.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Fixing what it finds</span></a>
+  </div>
+</li>
       </ul>
   </li>
         <li class="sidebar-item sidebar-item-section">
@@ -309,6 +315,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#what-happens-if-the-import-runs-in-a-worker-thread" id="toc-what-happens-if-the-import-runs-in-a-worker-thread" class="nav-link" data-scroll-target="#what-happens-if-the-import-runs-in-a-worker-thread">What happens if the import runs in a worker thread?</a></li>
   <li><a href="#if-gilguard-passes-is-my-app-thread-safe" id="toc-if-gilguard-passes-is-my-app-thread-safe" class="nav-link" data-scroll-target="#if-gilguard-passes-is-my-app-thread-safe">If gilguard passes, is my app thread-safe?</a></li>
   <li><a href="#a-package-ships-cp314t-wheels.-why-is-it-flagged" id="toc-a-package-ships-cp314t-wheels.-why-is-it-flagged" class="nav-link" data-scroll-target="#a-package-ships-cp314t-wheels.-why-is-it-flagged">A package ships cp314t wheels. Why is it flagged?</a></li>
+  <li><a href="#the-flagged-extension-is-mine.-how-do-i-declare-support" id="toc-the-flagged-extension-is-mine.-how-do-i-declare-support" class="nav-link" data-scroll-target="#the-flagged-extension-is-mine.-how-do-i-declare-support">The flagged extension is mine. How do I declare support?</a></li>
   <li><a href="#should-i-run-with-python_gil0-to-make-the-error-go-away" id="toc-should-i-run-with-python_gil0-to-make-the-error-go-away" class="nav-link" data-scroll-target="#should-i-run-with-python_gil0-to-make-the-error-go-away">Should I run with PYTHON_GIL=0 to make the error go away?</a></li>
   <li><a href="#does-it-work-on-python-3.13" id="toc-does-it-work-on-python-3.13" class="nav-link" data-scroll-target="#does-it-work-on-python-3.13">Does it work on Python 3.13?</a></li>
   <li><a href="#why-didnt-the-scanner-find-a-package-my-app-trips-on" id="toc-why-didnt-the-scanner-find-a-package-my-app-trips-on" class="nav-link" data-scroll-target="#why-didnt-the-scanner-find-a-package-my-app-trips-on">Why didn’t the scanner find a package my app trips on?</a></li>
@@ -369,7 +376,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="a-package-ships-cp314t-wheels.-why-is-it-flagged" class="level1">
 <h1>A package ships cp314t wheels. Why is it flagged?</h1>
-<p>A free-threaded wheel means the package was compiled for the free-threaded ABI. It doesn’t mean every extension module in it declares <code>Py_mod_gil</code>. Some projects publish <code>t</code> wheels before they’ve audited everything, and those modules still turn the GIL on when they load. The report names the specific module, which is useful in a bug report to the project.</p>
+<p>A free-threaded wheel means the package was compiled for the free-threaded ABI. It doesn’t mean every extension module in it declares <code>Py_mod_gil</code>. Some projects publish <code>t</code> wheels before they’ve audited everything, and those modules still turn the GIL on when they load. The report names the specific module, which is useful in a bug report to the project. <a href="../user-guide/fixing-an-offender.html">Fixing what it finds</a> covers what to put in that report.</p>
+</section>
+<section id="the-flagged-extension-is-mine.-how-do-i-declare-support" class="level1">
+<h1>The flagged extension is mine. How do I declare support?</h1>
+<p>Add <code>{Py_mod_gil, Py_MOD_GIL_NOT_USED}</code> to the module’s slots (multi-phase initialization), or call <code>PyUnstable_Module_SetGIL(m, Py_MOD_GIL_NOT_USED)</code> in a single-phase <code>PyInit_</code> function. Cython, pybind11 and PyO3 each have a one-line equivalent. <a href="../user-guide/fixing-an-offender.html#if-the-extension-is-yours">Fixing what it finds</a> has the snippets, and the reminder that the declaration is a promise about thread safety, not a fix for it.</p>
 </section>
 <section id="should-i-run-with-python_gil0-to-make-the-error-go-away" class="level1">
 <h1>Should I run with PYTHON_GIL=0 to make the error go away?</h1>

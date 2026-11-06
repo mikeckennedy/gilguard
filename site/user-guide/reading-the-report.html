@@ -71,7 +71,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="../site_libs/quarto-search/fuse.min.js"></script>
 <script src="../site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="../">
-<link href="../user-guide/configuration.html" rel="next">
+<link href="../user-guide/fixing-an-offender.html" rel="next">
 <link href="../user-guide/getting-started.html" rel="prev">
 <link href="../favicon.ico" rel="icon">
 <script src="../site_libs/quarto-html/quarto.js" type="module"></script>
@@ -247,6 +247,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
  <span class="menu-text">Reading the report</span></a>
   </div>
 </li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../user-guide/fixing-an-offender.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Fixing what it finds</span></a>
+  </div>
+</li>
       </ul>
   </li>
         <li class="sidebar-item sidebar-item-section">
@@ -376,7 +382,7 @@ The statement that loaded the offending module, usually inside the package. It�
 </dl>
 </div>
 <p>If gilguard can’t match the module to an installed distribution (it’s on <code>sys.path</code> from a source checkout, say), the Distribution line says so.</p>
-<p>After the details, the report lists your options: upgrade to a release with free-threaded wheels, drop or replace the package, or, if you’ve confirmed it’s thread-safe, run with <code>PYTHON_GIL=0</code> to keep the GIL off anyway.</p>
+<p>After the details, the report lists your options: upgrade to a release with free-threaded wheels, drop or replace the package, or, if you’ve confirmed it’s thread-safe, run with <code>PYTHON_GIL=0</code> to keep the GIL off anyway. <a href="../user-guide/fixing-an-offender.html">Fixing what it finds</a> walks through each of those, and what to do when the extension is your own.</p>
 </section>
 <section id="two-other-reasons" class="level1">
 <h1>Two other reasons</h1>
@@ -411,12 +417,12 @@ Make `import gilguard` the very first import in your program.</code></pre>
 <div class="sourceCode" id="cb5"><pre class="sourceCode json"><code class="sourceCode json"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"reason"</span><span class="fu">:</span> <span class="st">"import"</span><span class="fu">,</span></span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"module"</span><span class="fu">:</span> <span class="st">"gilneeder._speedups"</span><span class="fu">,</span></span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"origin"</span><span class="fu">:</span> <span class="st">".../site-packages/gilneeder/_speedups.cpython-315t-darwin.so"</span><span class="fu">,</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"origin"</span><span class="fu">:</span> <span class="st">".../site-packages/gilneeder/_speedups.cpython-314t-x86_64-linux-gnu.so"</span><span class="fu">,</span></span>
 <span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"distribution"</span><span class="fu">:</span> <span class="st">"gilneeder"</span><span class="fu">,</span></span>
 <span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"version"</span><span class="fu">:</span> <span class="st">"1.2.0"</span><span class="fu">,</span></span>
 <span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"chain"</span><span class="fu">:</span> <span class="ot">[</span><span class="st">"gilneeder"</span><span class="ot">,</span> <span class="st">"gilneeder._speedups"</span><span class="ot">]</span><span class="fu">,</span></span>
 <span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"imported_by"</span><span class="fu">:</span> <span class="st">".../site-packages/gilneeder/__init__.py:1"</span><span class="fu">,</span></span>
-<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"your_code"</span><span class="fu">:</span> <span class="st">"app.py:4"</span><span class="fu">,</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"your_code"</span><span class="fu">:</span> <span class="st">"/home/me/app.py:5"</span><span class="fu">,</span></span>
 <span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"gil_flag"</span><span class="fu">:</span> <span class="kw">null</span><span class="fu">,</span></span>
 <span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"suspects"</span><span class="fu">:</span> <span class="ot">[]</span></span>
 <span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
@@ -864,8 +870,8 @@ Make `import gilguard` the very first import in your program.</code></pre>
       </a>          
   </div>
   <div class="nav-page nav-page-next">
-      <a href="../user-guide/configuration.html" class="pagination-link" aria-label="Configuration">
-        <span class="nav-page-text">Configuration</span> <i class="bi bi-arrow-right-short"></i>
+      <a href="../user-guide/fixing-an-offender.html" class="pagination-link" aria-label="Fixing what it finds">
+        <span class="nav-page-text">Fixing what it finds</span> <i class="bi bi-arrow-right-short"></i>
       </a>
   </div>
 </nav>

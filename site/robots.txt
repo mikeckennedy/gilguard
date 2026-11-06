@@ -7,3 +7,4 @@ Sitemap: https://mkennedy.codes/docs/gilguard/sitemap.xml
 
 # AI agent context files
 Llms-txt: https://mkennedy.codes/docs/gilguard/llms.txt
+Llms-txt: https://mkennedy.codes/docs/gilguard/llms-full.txt

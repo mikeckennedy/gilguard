@@ -40,7 +40,7 @@ import gilguard
 gilguard.install(action='warn')
 ```
 
-`import gilguard` already called [install()](../reference/install.md#gilguard.install), and a second call doesn't add another hook. It just changes the action. If you need a specific action from the very first import, use the environment variable. Otherwise anything imported before your [install()](../reference/install.md#gilguard.install) call runs under the default.
+`import gilguard` already called [install()](../reference/install.md#gilguard.install), and a second call doesn't add another hook. It just changes the action, and `install(action='off')` removes the hook, the same as [uninstall()](../reference/uninstall.md#gilguard.uninstall). If you need a specific action from the very first import, use the environment variable. Otherwise anything imported before your [install()](../reference/install.md#gilguard.install) call runs under the default.
 
 [uninstall()](../reference/uninstall.md#gilguard.uninstall) removes the hook. Imports after that can turn the GIL on without a report. Call [install()](../reference/install.md#gilguard.install) again to resume.
 

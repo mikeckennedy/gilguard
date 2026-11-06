@@ -38,7 +38,11 @@ No. A clean run means the imports that actually ran didn't turn the GIL back on.
 
 ## A package ships cp314t wheels. Why is it flagged?
 
-A free-threaded wheel means the package was compiled for the free-threaded ABI. It doesn't mean every extension module in it declares `Py_mod_gil`. Some projects publish `t` wheels before they've audited everything, and those modules still turn the GIL on when they load. The report names the specific module, which is useful in a bug report to the project.
+A free-threaded wheel means the package was compiled for the free-threaded ABI. It doesn't mean every extension module in it declares `Py_mod_gil`. Some projects publish `t` wheels before they've audited everything, and those modules still turn the GIL on when they load. The report names the specific module, which is useful in a bug report to the project. [Fixing what it finds](fixing-an-offender.qmd) covers what to put in that report.
+
+## The flagged extension is mine. How do I declare support?
+
+Add `{Py_mod_gil, Py_MOD_GIL_NOT_USED}` to the module's slots (multi-phase initialization), or call `PyUnstable_Module_SetGIL(m, Py_MOD_GIL_NOT_USED)` in a single-phase `PyInit_` function. Cython, pybind11 and PyO3 each have a one-line equivalent. [Fixing what it finds](fixing-an-offender.qmd#if-the-extension-is-yours) has the snippets, and the reminder that the declaration is a promise about thread safety, not a fix for it.
 
 ## Should I run with PYTHON_GIL=0 to make the error go away?
 

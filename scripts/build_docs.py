@@ -6,12 +6,17 @@ and points every image at the hosted copies so ./site carries no image files of 
 Great Docs only accepts a local file for the navbar logo (it copies it and builds
 the favicons from it), so the HTML is rewritten after the build.
 
+Great Docs imports the package to write llms-full.txt, and skips the file quietly
+when it can't. gilguard is installed into the build environment for that, with
+GILGUARD_ACTION=off because the build runs on a standard (GIL) interpreter.
+
 Usage:
     python scripts/build_docs.py
 """
 
 from __future__ import annotations
 
+import os
 import re
 import shutil
 import subprocess
@@ -43,7 +48,8 @@ def _rewrite(html: str) -> str:
 
 
 def main() -> int:
-    subprocess.run(['uvx', 'great-docs', 'build'], cwd=ROOT, check=True)
+    env = {**os.environ, 'GILGUARD_ACTION': 'off'}
+    subprocess.run(['uvx', '--with-editable', str(ROOT), 'great-docs', 'build'], cwd=ROOT, check=True, env=env)
 
     if SITE.exists():
         shutil.rmtree(SITE)
@@ -66,6 +72,11 @@ def main() -> int:
     if leftovers:
         print('Pages still reference removed local images:', *leftovers, sep='\n  ', file=sys.stderr)
         return 1
+
+    for required in ('llms.txt', 'llms-full.txt', 'skill.md'):
+        if not (SITE / required).exists():
+            print(f'Great Docs did not produce {required}', file=sys.stderr)
+            return 1
 
     print(f'Site ready in {SITE.relative_to(ROOT)}/ ({len(pages)} pages)')
     return 0

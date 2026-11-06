@@ -258,7 +258,7 @@ section.level2:first-of-type > h2:first-child,
 </section>
 <section id="ai-agents" class="level3">
 <h3 class="anchored" data-anchor-id="ai-agents">AI / Agents</h3>
-<p><a href="skills.html">Skills<svg class="gd-sparkle" xmlns="http://www.w3.org/2000/svg" width="0.85em" height="0.85em" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -0.1em; margin-left: 0.25em;"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.582a.5.5 0 0 1 0 .963L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"></path><path d="M20 3v4"></path><path d="M22 5h-4"></path></svg></a><br> <a href="llms.txt">llms.txt</a><br> <a href="llms-full.txt">llms-full.txt</a><br></p>
+<p><a href="skills.html">Skills<svg class="gd-sparkle-curated" xmlns="http://www.w3.org/2000/svg" width="0.85em" height="0.85em" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -0.1em; margin-left: 0.25em;"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.582a.5.5 0 0 1 0 .963L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"></path><path d="M20 3v4"></path><path d="M22 5h-4"></path></svg></a><br> <a href="llms.txt">llms.txt</a><br> <a href="llms-full.txt">llms-full.txt</a><br></p>
 </section>
 <section id="developers" class="level3">
 <h3 class="anchored" data-anchor-id="developers">Developers</h3>
@@ -337,8 +337,11 @@ Options:
 <ul>
 <li><a href="./user-guide/getting-started.html">Getting started</a> covers installing it and where the import goes.</li>
 <li><a href="./user-guide/reading-the-report.html">Reading the report</a> explains each field and the three reasons the GIL can be on.</li>
+<li><a href="./user-guide/fixing-an-offender.html">Fixing what it finds</a> is what to do once you have a name: upgrade, report, replace, or declare support in your own extension.</li>
 <li><a href="./user-guide/auditing-an-environment.html">Auditing an environment</a> is the place to start if you’re moving an existing app to free-threaded Python.</li>
 <li><a href="./user-guide/tests-and-ci.html">Tests and CI</a> shows how to catch offenders before they reach production.</li>
+<li><a href="./user-guide/configuration.html">Configuration</a> covers <code>raise</code>, <code>warn</code> and <code>off</code>, and how <code>PYTHON_GIL</code> interacts with them.</li>
+<li><a href="./user-guide/how-it-works.html">How it works</a> explains the import hook, the backstop, and why the error is a <code>BaseException</code>.</li>
 <li>The <a href="./reference/index.html">API reference</a> documents every public name.</li>
 </ul>
 <p>gilguard is MIT licensed and has no dependencies. It needs Python 3.13 or newer, and does its real work on a free-threaded build (<code>3.13t</code>, <code>3.14t</code>, <code>3.15t</code>).</p>

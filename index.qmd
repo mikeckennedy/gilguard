@@ -77,8 +77,11 @@ Set `GILGUARD_ACTION=warn` and you get the same report as a warning while the pr
 
 - [Getting started](user-guide/getting-started.qmd) covers installing it and where the import goes.
 - [Reading the report](user-guide/reading-the-report.qmd) explains each field and the three reasons the GIL can be on.
+- [Fixing what it finds](user-guide/fixing-an-offender.qmd) is what to do once you have a name: upgrade, report, replace, or declare support in your own extension.
 - [Auditing an environment](user-guide/auditing-an-environment.qmd) is the place to start if you're moving an existing app to free-threaded Python.
 - [Tests and CI](user-guide/tests-and-ci.qmd) shows how to catch offenders before they reach production.
+- [Configuration](user-guide/configuration.qmd) covers `raise`, `warn` and `off`, and how `PYTHON_GIL` interacts with them.
+- [How it works](user-guide/how-it-works.qmd) explains the import hook, the backstop, and why the error is a `BaseException`.
 - The [API reference](reference/index.qmd) documents every public name.
 
 gilguard is MIT licensed and has no dependencies. It needs Python 3.13 or newer, and does its real work on a free-threaded build (`3.13t`, `3.14t`, `3.15t`).

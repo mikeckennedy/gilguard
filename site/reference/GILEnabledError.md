@@ -30,3 +30,18 @@ The details of what turned the GIL on.
 
 `report: GILReport`  
 The same report, for code that wants the data rather than the text.
+
+
+## Examples
+
+Catching it is for logging, not for recovering. The GIL stays on either way, so re-raise:
+
+``` python
+import gilguard
+
+try:
+    import gilneeder
+except gilguard.GILEnabledError as e:
+    log.critical('free-threading lost: %s', e.report.module)
+    raise
+```

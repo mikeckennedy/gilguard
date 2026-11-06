@@ -50,6 +50,8 @@ Options:
 
 The report is also available as data on `exc.report` (`GILReport`, with `.as_dict()`).
 
+The options at the end of the report are the short version. [Fixing what it finds](https://mkennedy.codes/docs/gilguard/user-guide/fixing-an-offender.html) has the longer one, including how to declare free-threading support in an extension you own.
+
 ## What it catches
 
 - Any import that flips the GIL. A `sys.meta_path` finder wraps every loader and checks `sys._is_gil_enabled()` before and after the module is created and executed.
@@ -106,7 +108,15 @@ GIL    gilneeder                via gilneeder._speedups  [gilneeder 1.2.0]
 8 checked: 7 ok, 1 re-enable the GIL, 0 failed to import.
 ```
 
-Pass module names to check specific ones, `--json` for machine-readable output. Exits 1 if any offender is found, so it works as a CI gate. Modules that fail to import on their own are listed as `ERROR` but don't fail the run, since they couldn't be checked. Add `--strict` to fail on those too. Extensions a package loads lazily on first use won't show up in the scan. Run your test suite with `import gilguard` in `conftest.py` to catch those.
+Pass module names to check specific ones, `--json` for machine-readable output. Exits 1 if any offender is found, so it works as a CI gate. Modules that fail to import on their own are listed as `ERROR` but don't fail the run, since they couldn't be checked. Add `--strict` to fail on those too. Installing gilguard also puts a `gilguard` command on your path that runs the same scan.
+
+Extensions a package loads lazily on first use won't show up in the scan. Run your test suite with gilguard loaded as a plugin to catch those:
+
+```bash
+pytest -p gilguard
+```
+
+pytest imports `-p` plugins before it collects `conftest.py` or any test module, so the guard is watching before your code imports anything.
 
 ## Development
 

@@ -31,3 +31,16 @@ If the action is not one of `raise`, `warn` or `off`.
 
 `GILEnabledError`  
 If the action is `raise` and the interpreter is a standard build, or the GIL is already enabled.
+
+
+## Examples
+
+Switch to warn mode in code instead of through the environment. The hook is already installed, so this only changes what it does:
+
+``` python
+import gilguard
+
+gilguard.install(action='warn')
+```
+
+`install(action='off')` on an installed guard removes it, the same as [uninstall()](uninstall.md#gilguard.uninstall).

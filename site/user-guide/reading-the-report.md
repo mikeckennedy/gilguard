@@ -42,7 +42,7 @@ The statement that loaded the offending module, usually inside the package. It's
 
 If gilguard can't match the module to an installed distribution (it's on `sys.path` from a source checkout, say), the Distribution line says so.
 
-After the details, the report lists your options: upgrade to a release with free-threaded wheels, drop or replace the package, or, if you've confirmed it's thread-safe, run with `PYTHON_GIL=0` to keep the GIL off anyway.
+After the details, the report lists your options: upgrade to a release with free-threaded wheels, drop or replace the package, or, if you've confirmed it's thread-safe, run with `PYTHON_GIL=0` to keep the GIL off anyway. [Fixing what it finds](fixing-an-offender.md) walks through each of those, and what to do when the extension is your own.
 
 
 # Two other reasons
@@ -94,12 +94,12 @@ except gilguard.GILEnabledError as e:
 {
   "reason": "import",
   "module": "gilneeder._speedups",
-  "origin": ".../site-packages/gilneeder/_speedups.cpython-315t-darwin.so",
+  "origin": ".../site-packages/gilneeder/_speedups.cpython-314t-x86_64-linux-gnu.so",
   "distribution": "gilneeder",
   "version": "1.2.0",
   "chain": ["gilneeder", "gilneeder._speedups"],
   "imported_by": ".../site-packages/gilneeder/__init__.py:1",
-  "your_code": "app.py:4",
+  "your_code": "/home/me/app.py:5",
   "gil_flag": null,
   "suspects": []
 }

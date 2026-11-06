@@ -12,6 +12,14 @@ Environment variable GILGUARD_ACTION controls the behavior:
     raise (default) - raise GILEnabledError
     warn            - emit GILGuardWarning with the same report, keep running
     off             - do nothing
+
+A process can only catch the first import that flips the GIL. To list every
+installed package that does it, each in a fresh interpreter, run:
+
+    python -m gilguard
+
+To catch extensions that only load when a code path runs, load gilguard as a
+pytest plugin: `pytest -p gilguard`.
 """
 
 from __future__ import annotations
@@ -58,6 +66,15 @@ def is_free_threaded_build() -> bool:
     -------
     bool
         `True` on a free-threaded build, `False` on a standard build.
+
+    Examples
+    --------
+    ```python
+    import gilguard
+
+    if not gilguard.is_free_threaded_build():
+        print('threads will not run Python code in parallel here')
+    ```
     """
     return bool(sysconfig.get_config_var('Py_GIL_DISABLED'))
 
@@ -72,6 +89,18 @@ def gil_enabled() -> bool:
     -------
     bool
         `True` if the GIL is currently enabled.
+
+    Examples
+    --------
+    A free-threaded build can still have the GIL on. That is the case gilguard
+    exists for, and this is how to check for it by hand:
+
+    ```python
+    import gilguard
+
+    assert gilguard.is_free_threaded_build()
+    assert not gilguard.gil_enabled(), 'something already turned the GIL on'
+    ```
     """
     fn = getattr(sys, '_is_gil_enabled', None)
     return True if fn is None else bool(fn())
@@ -117,6 +146,21 @@ class GILReport:
     suspects
         For `"already-enabled"`, the third-party extension modules that were
         already loaded. One of them turned the GIL on.
+
+    Examples
+    --------
+    Log the report as JSON and let the error carry on:
+
+    ```python
+    import json
+    import gilguard
+
+    try:
+        import gilneeder
+    except gilguard.GILEnabledError as e:
+        print(json.dumps(e.report.as_dict(), indent=2))
+        raise
+    ```
     """
 
     reason: str  # "import", "already-enabled", "gil-build"
@@ -178,6 +222,21 @@ class GILEnabledError(BaseException):
     ----------
     report : GILReport
         The same report, for code that wants the data rather than the text.
+
+    Examples
+    --------
+    Catching it is for logging, not for recovering. The GIL stays on either way,
+    so re-raise:
+
+    ```python
+    import gilguard
+
+    try:
+        import gilneeder
+    except gilguard.GILEnabledError as e:
+        log.critical('free-threading lost: %s', e.report.module)
+        raise
+    ```
     """
 
     def __init__(self, report: GILReport):
@@ -487,6 +546,20 @@ def install(action: str | None = None) -> None:
     GILEnabledError
         If the action is `raise` and the interpreter is a standard build, or the
         GIL is already enabled.
+
+    Examples
+    --------
+    Switch to warn mode in code instead of through the environment. The hook is
+    already installed, so this only changes what it does:
+
+    ```python
+    import gilguard
+
+    gilguard.install(action='warn')
+    ```
+
+    `install(action='off')` on an installed guard removes it, the same as
+    `uninstall()`.
     """
     global _installed, _action, _orig_showwarning, _finder
 
@@ -494,7 +567,10 @@ def install(action: str | None = None) -> None:
     if action not in _ACTIONS:
         raise ValueError(f'GILGUARD_ACTION must be one of {", ".join(_ACTIONS)}, got {action!r}')
     _action = action
-    if action == 'off' or _installed:
+    if action == 'off':
+        uninstall()
+        return
+    if _installed:
         return
 
     if not is_free_threaded_build():
@@ -527,6 +603,17 @@ def uninstall() -> None:
     This removes gilguard's import hook and restores `warnings.showwarning`. Later
     imports can turn the GIL on without a report. Call `install()` to start
     guarding again.
+
+    Examples
+    --------
+    ```python
+    import gilguard
+
+    gilguard.uninstall()
+    import legacy_thing  # unguarded: if this flips the GIL, nothing is reported
+
+    gilguard.install()
+    ```
     """
     global _installed
     if not _installed:

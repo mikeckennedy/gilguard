@@ -19,3 +19,13 @@ A free-threaded build is one compiled with `--disable-gil`, usually installed as
 
 `bool`  
 `True` on a free-threaded build, `False` on a standard build.
+
+
+## Examples
+
+``` python
+import gilguard
+
+if not gilguard.is_free_threaded_build():
+    print('threads will not run Python code in parallel here')
+```

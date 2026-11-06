@@ -1,0 +1,829 @@
+----------------------------------------------------------------------
+This is the API documentation for the gilguard library.
+----------------------------------------------------------------------
+
+
+## When the GIL comes back on
+
+What gilguard raises or warns with, and the report that comes with it.
+
+
+GILEnabledError(report: 'GILReport')
+
+The GIL was enabled on a free-threaded interpreter.
+
+The message is the formatted report, and the structured version is on
+`report`.
+
+This derives from `BaseException` on purpose. The GIL can't be turned back
+off, so an `except Exception:` or `except ImportError:` around an optional
+import must not be able to swallow it and keep the program running with the
+GIL on. Catch `gilguard.GILEnabledError` by name if you really mean to.
+
+It is raised in the thread that ran the import. In a worker thread, that
+thread dies but the rest of the process keeps running with the GIL on.
+Install a `threading.excepthook` if you want any flip to end the program.
+
+Parameters
+----------
+report
+    The details of what turned the GIL on.
+
+Attributes
+----------
+report : GILReport
+    The same report, for code that wants the data rather than the text.
+
+Examples
+--------
+Catching it is for logging, not for recovering. The GIL stays on either way,
+so re-raise:
+
+```python
+import gilguard
+
+try:
+    import gilneeder
+except gilguard.GILEnabledError as e:
+    log.critical('free-threading lost: %s', e.report.module)
+    raise
+```
+
+GILReport(reason: 'str', module: 'str | None' = None, origin: 'str | None' = None, distribution: 'str | None' = None, version: 'str | None' = None, chain: 'list[str]' = <factory>, imported_by: 'str | None' = None, your_code: 'str | None' = None, gil_flag: 'int | None' = None, suspects: 'list[str]' = <factory>) -> None
+
+Everything gilguard knows about why the GIL is on.
+
+You get one of these as `GILEnabledError.report`. Which fields are filled in
+depends on `reason`: an import flip fills in the module details, while the
+other two reasons only describe the interpreter.
+
+Attributes
+----------
+reason
+    What happened. `"import"` means an import turned the GIL on.
+    `"already-enabled"` means it was on before gilguard was imported.
+    `"gil-build"` means this is a standard build, where the GIL is always on.
+module
+    Full name of the extension module that turned the GIL on, such as
+    `"gilneeder._speedups"`.
+origin
+    Path to that module's file, usually a `.so` or `.pyd`.
+distribution
+    Name of the installed distribution that shipped the module, if gilguard
+    can find one.
+version
+    Version of that distribution.
+chain
+    Module names from the first import down to the offender, outermost first.
+    `["pandas", "pandas._libs", "pandas._libs.lib"]` reads as "pandas imported
+    pandas._libs, which imported pandas._libs.lib".
+imported_by
+    `file:line` of the innermost import statement, the one that loaded the
+    offending module. This is usually inside the package itself.
+your_code
+    `file:line` of the outermost import statement, where the chain started.
+    This is usually your code.
+gil_flag
+    The value of `sys.flags.gil`: `1` when `PYTHON_GIL=1` or `-X gil=1` forced
+    the GIL on, `0` when it was forced off, `None` when neither was set.
+suspects
+    For `"already-enabled"`, the third-party extension modules that were
+    already loaded. One of them turned the GIL on.
+
+Examples
+--------
+Log the report as JSON and let the error carry on:
+
+```python
+import json
+import gilguard
+
+try:
+    import gilneeder
+except gilguard.GILEnabledError as e:
+    print(json.dumps(e.report.as_dict(), indent=2))
+    raise
+```
+
+GILGuardWarning
+
+Emitted instead of raising when the action is `warn`.
+
+The warning message is the same formatted report that `GILEnabledError`
+carries. It subclasses `RuntimeWarning`, so you can filter it, log it or
+capture it like any other warning.
+
+
+## Turning the guard on and off
+
+`import gilguard` calls install() for you. Use these to choose the action in code or to stop guarding.
+
+
+install(action: 'str | None' = None) -> 'None'
+
+Start guarding imports.
+
+`import gilguard` calls this for you, so you only need it to choose the
+action in code, or to start guarding again after `uninstall()`.
+
+Before it starts guarding, it checks the interpreter. On a standard build,
+or if the GIL is already on, it reports that straight away instead.
+
+Parameters
+----------
+action
+    `"raise"` to raise `GILEnabledError`, `"warn"` to emit `GILGuardWarning`
+    and keep running, or `"off"` to do nothing. `None` reads the
+    `GILGUARD_ACTION` environment variable and falls back to `"raise"`.
+
+Raises
+------
+ValueError
+    If the action is not one of `raise`, `warn` or `off`.
+GILEnabledError
+    If the action is `raise` and the interpreter is a standard build, or the
+    GIL is already enabled.
+
+Examples
+--------
+Switch to warn mode in code instead of through the environment. The hook is
+already installed, so this only changes what it does:
+
+```python
+import gilguard
+
+gilguard.install(action='warn')
+```
+
+`install(action='off')` on an installed guard removes it, the same as
+`uninstall()`.
+
+uninstall() -> 'None'
+
+Stop guarding imports.
+
+This removes gilguard's import hook and restores `warnings.showwarning`. Later
+imports can turn the GIL on without a report. Call `install()` to start
+guarding again.
+
+Examples
+--------
+```python
+import gilguard
+
+gilguard.uninstall()
+import legacy_thing  # unguarded: if this flips the GIL, nothing is reported
+
+gilguard.install()
+```
+
+
+## Checking the interpreter
+
+Small helpers you can use with or without the guard installed.
+
+
+is_free_threaded_build() -> 'bool'
+
+Check whether this interpreter is a free-threaded build.
+
+A free-threaded build is one compiled with `--disable-gil`, usually installed
+as `python3.13t`, `python3.14t` and so on. This says nothing about whether the
+GIL is on right now; use `gil_enabled()` for that.
+
+Returns
+-------
+bool
+    `True` on a free-threaded build, `False` on a standard build.
+
+Examples
+--------
+```python
+import gilguard
+
+if not gilguard.is_free_threaded_build():
+    print('threads will not run Python code in parallel here')
+```
+
+gil_enabled() -> 'bool'
+
+Check whether the GIL is enabled in this process right now.
+
+On a free-threaded build this starts out `False` and flips to `True` for good
+once something turns the GIL back on. On a standard build it is always `True`.
+
+Returns
+-------
+bool
+    `True` if the GIL is currently enabled.
+
+Examples
+--------
+A free-threaded build can still have the GIL on. That is the case gilguard
+exists for, and this is how to check for it by hand:
+
+```python
+import gilguard
+
+assert gilguard.is_free_threaded_build()
+assert not gilguard.gil_enabled(), 'something already turned the GIL on'
+```
+
+
+----------------------------------------------------------------------
+This is the User Guide documentation for the package.
+----------------------------------------------------------------------
+
+
+## Get started
+
+## The problem gilguard solves
+
+Free-threaded Python (the `t` builds: `3.13t`, `3.14t`, `3.15t`) runs without the global interpreter lock, so threads can run Python code in parallel. That only holds while every extension module you load agrees to it. C extensions declare that with the `Py_mod_gil` slot. When CPython loads one that hasn't, it plays safe and switches the GIL back on for the whole process.
+
+It tells you with a single line:
+
+```text
+RuntimeWarning: The global interpreter lock (GIL) has been enabled to load module
+'gilneeder._speedups', which has not declared that it can run safely without the GIL.
+```
+
+That's easy to miss in a busy log, and it only names the extension module, not the package you imported or the line that imported it. Once the GIL is on, nothing can turn it off again. The program keeps working, just without the parallelism you switched builds for.
+
+gilguard makes that moment loud and specific.
+
+## Install
+
+```bash
+uv pip install gilguard
+```
+
+Plain `pip install gilguard` works too. gilguard has no dependencies and needs Python 3.13 or newer. To be useful it has to run on a free-threaded interpreter. If you don't have one yet:
+
+```bash
+uv python install 3.14t
+uv venv -p 3.14t
+```
+
+## Make it the first import
+
+```python
+import gilguard  # must be first
+
+import fastapi
+import pandas
+```
+
+Importing gilguard installs the guard. You don't have to call anything. From then on, any import that turns the GIL on raises `GILEnabledError` at that import statement, with a [report](reading-the-report.qmd) of what happened.
+
+It has to come first because gilguard can only watch imports that happen after it. If something earlier has already turned the GIL on, gilguard notices when it's imported and raises straight away, listing the extension modules already loaded. One of them is the culprit.
+
+::: {.callout-tip}
+## Where "first" is in your app
+
+Put it at the top of whatever module starts your process: `main.py`, the module your ASGI server loads, `manage.py`, or `__main__.py`. For tests, see [Tests and CI](tests-and-ci.qmd). There's a better spot than `conftest.py`.
+:::
+
+## Try it
+
+The fastest way to see what's in your environment is the scanner:
+
+```bash
+python -m gilguard
+```
+
+```text
+GIL    gilneeder                via gilneeder._speedups  [gilneeder 1.2.0]
+
+8 checked: 7 ok, 1 re-enable the GIL, 0 failed to import.
+```
+
+Each package gets imported in its own interpreter, so one offender doesn't hide the rest. [Auditing an environment](auditing-an-environment.qmd) covers the options.
+
+## On a standard build
+
+On a regular GIL build there's nothing to guard, and gilguard says so by raising:
+
+```text
+gilguard.GILEnabledError: This is not a free-threaded Python build, so the GIL is always on.
+```
+
+If the same code has to run on both kinds of build, set `GILGUARD_ACTION=off` wherever it runs with the GIL. [Configuration](configuration.qmd) has the details.
+
+
+### Reading the report
+
+Every `GILEnabledError` carries a `GILReport`. The exception message is the report rendered as text. `exc.report` is the same thing as data.
+
+## The import report
+
+This is the one you'll see most. An import just turned the GIL on:
+
+```text
+gilguard.GILEnabledError: Importing 'gilneeder._speedups' re-enabled the GIL.
+
+  Module:       gilneeder._speedups
+  File:         .../site-packages/gilneeder/_speedups.cpython-314t-x86_64-linux-gnu.so
+  Distribution: gilneeder 1.2.0
+  Import chain: gilneeder -> gilneeder._speedups
+  Your code:    /home/me/app.py:5
+  Imported by:  .../site-packages/gilneeder/__init__.py:1
+```
+
+Here's what each line tells you:
+
+::: {.fields}
+Module
+:   The extension module that doesn't declare free-threading support. This is the thing that actually flipped the GIL.
+
+File
+:   Where that module lives. The filename shows the ABI it was built for. A `cp314t` tag means a free-threaded wheel was installed and the module just doesn't declare support yet.
+
+Distribution
+:   The installed package that shipped the module, and its version. This is what you'd upgrade, pin or replace.
+
+Import chain
+:   Every module on the way down, starting with the one your code imported. Useful when the offender is a dependency of a dependency.
+
+Your code
+:   The import statement where the chain started, usually in your own code.
+
+Imported by
+:   The statement that loaded the offending module, usually inside the package. It's left out when it's the same line as "Your code".
+:::
+
+If gilguard can't match the module to an installed distribution (it's on `sys.path` from a source checkout, say), the Distribution line says so.
+
+After the details, the report lists your options: upgrade to a release with free-threaded wheels, drop or replace the package, or, if you've confirmed it's thread-safe, run with `PYTHON_GIL=0` to keep the GIL off anyway. [Fixing what it finds](fixing-an-offender.qmd) walks through each of those, and what to do when the extension is your own.
+
+## Two other reasons
+
+The GIL can also be on before gilguard gets a chance to watch.
+
+**It was already on when gilguard was imported.** If the GIL was forced on, the report says so:
+
+```text
+gilguard.GILEnabledError: The GIL was already enabled before gilguard was imported.
+
+  Cause: the GIL was forced on with PYTHON_GIL=1 or -X gil=1.
+
+Make `import gilguard` the very first import in your program.
+```
+
+Otherwise gilguard lists the third-party extension modules that were already loaded. One of them did it:
+
+```text
+gilguard.GILEnabledError: The GIL was already enabled before gilguard was imported.
+
+  Third-party extension modules already loaded (one of these turned it on):
+    - gilneeder._speedups
+
+Make `import gilguard` the very first import in your program.
+```
+
+If that list is empty, something ran before your code did: a `sitecustomize` module or a `.pth` file are the usual suspects.
+
+**It's a standard build.** The GIL is always on, so gilguard raises with the interpreter path and a pointer to `GILGUARD_ACTION=off`.
+
+## Using the report in code
+
+The same fields are on `exc.report`, and `as_dict()` gives you something you can serialize:
+
+```python
+import json
+import gilguard
+
+try:
+    import gilneeder
+except gilguard.GILEnabledError as e:
+    print(json.dumps(e.report.as_dict(), indent=2))
+    raise
+```
+
+```json
+{
+  "reason": "import",
+  "module": "gilneeder._speedups",
+  "origin": ".../site-packages/gilneeder/_speedups.cpython-314t-x86_64-linux-gnu.so",
+  "distribution": "gilneeder",
+  "version": "1.2.0",
+  "chain": ["gilneeder", "gilneeder._speedups"],
+  "imported_by": ".../site-packages/gilneeder/__init__.py:1",
+  "your_code": "/home/me/app.py:5",
+  "gil_flag": null,
+  "suspects": []
+}
+```
+
+`reason` is `"import"`, `"already-enabled"` or `"gil-build"`, and tells you which of the other fields are filled in. The [`GILReport` reference](../reference/GILReport.qmd) describes each field.
+
+::: {.callout-note}
+## Re-raise if you catch it
+
+Catching `GILEnabledError` doesn't put things back. The GIL is on for the rest of the process either way. Catch it to log or report, then let it go.
+:::
+
+## Only the first one
+
+gilguard reports the first import that turns the GIL on and stays quiet after that. Once it's on, later imports can't turn it on again, so there's nothing more to catch in that process. To find every offender, use [`python -m gilguard`](auditing-an-environment.qmd), which gives each package its own interpreter.
+
+
+### Fixing what it finds
+
+The report tells you which extension module turned the GIL on and which distribution shipped it. This page is about what to do next. The options are in rough order of effort, so start at the top.
+
+## Upgrade the distribution
+
+Most offenders are packages whose maintainers have already done the work, just not in the version you have. Upgrade and check again:
+
+```bash
+uv pip install --upgrade gilneeder
+python -m gilguard gilneeder
+```
+
+The wheel filename tells you what you got. A free-threaded wheel carries a `t` in its ABI tag, such as `cp314t`, and the `File` line of the report shows the same tag in the module's filename. If the package has no `t` wheels for your platform, pip or uv built it from source, and nothing in that build declares free-threading support unless the package's own code does.
+
+The [free-threading compatibility tracker](https://py-free-threading.github.io/tracking/) lists where popular packages with native code stand, and usually links the release or issue that added support.
+
+::: {.callout-note}
+## A `t` wheel is necessary, not sufficient
+
+A wheel built for the free-threaded ABI can still contain extension modules that don't declare `Py_mod_gil`. Those turn the GIL on when they load, same as any other. The report names the exact module, which is what the maintainers need to hear about.
+:::
+
+## Report it upstream
+
+If the latest release still flips the GIL, the project may not know, or may not know which of its modules does it. A package can ship dozens of extension modules, and the one that matters is often a private helper nobody looks at. Open an issue with the report's `Module`, `File` and `Distribution` lines and your Python version. The `Import chain` line helps too, since it shows how the module gets loaded.
+
+For maintainers, the community [porting guide for extension modules](https://py-free-threading.github.io/porting-extensions/) and CPython's [free-threading HOWTO](https://docs.python.org/3/howto/free-threading-extensions.html) cover what's involved.
+
+## Replace or drop it
+
+If upgrading isn't an option, find out who needs the package. The `Your code` line is where the chain started, which may be a direct import or a dependency you never named. `uv pip tree` or `pipdeptree` shows what depends on it. Then swap in a package with free-threaded wheels, or drop the feature that needs it.
+
+## Keep running while you wait
+
+If you can't fix it today but want the app on a free-threaded build anyway, set `GILGUARD_ACTION=warn`. The program keeps running with the GIL on, you get the same report in your logs, and you still find out the day a new dependency starts doing the same thing. Switch back to `raise` once the list is empty. [Configuration](configuration.qmd) covers the modes.
+
+## Last resort: PYTHON_GIL=0
+
+`PYTHON_GIL=0` tells CPython to keep the GIL off even when a module doesn't declare support. The missing declaration might be an oversight, or the module might rely on the GIL for correctness, and the only way to know is to ask the maintainers or read the code. If it's the latter, you've traded an error for data races. gilguard never fires under `PYTHON_GIL=0` because the GIL never comes on, so you also lose the guard for every other package. Use it to test one package you've checked, not as the way you run production.
+
+## If the extension is yours
+
+Declaring support is one slot, and it's the difference between gilguard's two test fixtures. `gilneeder` uses single-phase initialization and declares nothing, so it turns the GIL on. `ftsafe` uses multi-phase initialization and adds the slot:
+
+```c
+static PyModuleDef_Slot slots[] = {
+    {Py_mod_gil, Py_MOD_GIL_NOT_USED},
+    {0, NULL},
+};
+```
+
+That works with multi-phase initialization (`PyModuleDef_Init`). With single-phase initialization (`PyModule_Create`), call `PyUnstable_Module_SetGIL(m, Py_MOD_GIL_NOT_USED)` on the module before returning it, inside `#ifdef Py_GIL_DISABLED`, since that function only exists on free-threaded builds. The slot itself exists on every 3.13+ build, so it only needs a `PY_VERSION_HEX` guard if you still compile for 3.12 or older.
+
+The binding tools each have their own switch:
+
+| Tool | How to declare |
+|---|---|
+| Cython 3.1+ | `# cython: freethreading_compatible = True` at the top of the `.pyx` |
+| pybind11 2.13+ | `PYBIND11_MODULE(name, m, py::mod_gil_not_used())` |
+| PyO3 0.23+ | `#[pymodule(gil_used = false)]` |
+
+::: {.callout-warning}
+## The declaration is a promise
+
+`Py_MOD_GIL_NOT_USED` tells CPython your module is safe to run without the GIL. It doesn't make it safe. Global state, caches, and anything the GIL used to serialize for you need a look first. CPython's [free-threading HOWTO](https://docs.python.org/3/howto/free-threading-extensions.html) lists what to check.
+:::
+
+Then build a free-threaded wheel, install it, and confirm with `python -m gilguard yourpackage`.
+
+
+
+## Using gilguard
+
+### Configuration
+
+gilguard has one setting: what to do when the GIL comes on. You set it with an environment variable or in code.
+
+## GILGUARD_ACTION
+
+| Value | What happens |
+|---|---|
+| `raise` (default) | Raise `GILEnabledError` at the import that did it. |
+| `warn` | Emit `GILGuardWarning` with the same report and keep running. |
+| `off` | Don't install the guard at all. |
+
+```bash
+GILGUARD_ACTION=warn python app.py
+```
+
+The value isn't case sensitive. Anything other than those three raises `ValueError` when gilguard is imported, so a typo fails fast instead of quietly turning the guard off.
+
+### When to use warn
+
+`warn` suits a first pass over an existing app. You see every report in your logs without taking anything down, then switch to `raise` once the offenders are dealt with. The warning is a `GILGuardWarning`, a `RuntimeWarning` subclass, so your existing warning filters and logging capture it like any other.
+
+Remember that in warn mode the program keeps running with the GIL on. It's a way to find problems, not a way to live with them.
+
+### When to use off
+
+`off` is for running the same code on a standard GIL build, where gilguard would otherwise raise because the GIL is always on. Set it in the environments that use a standard build and leave it unset where you run free-threaded.
+
+## In code
+
+`install()` takes the same values and wins over the environment variable:
+
+```python
+import gilguard
+
+gilguard.install(action='warn')
+```
+
+`import gilguard` already called `install()`, and a second call doesn't add another hook. It just changes the action, and `install(action='off')` removes the hook, the same as `uninstall()`. If you need a specific action from the very first import, use the environment variable. Otherwise anything imported before your `install()` call runs under the default.
+
+`uninstall()` removes the hook. Imports after that can turn the GIL on without a report. Call `install()` again to resume.
+
+```python
+gilguard.uninstall()
+import legacy_thing  # unguarded
+gilguard.install()
+```
+
+## PYTHON_GIL
+
+CPython's own `PYTHON_GIL` environment variable (or `-X gil=`) takes priority over everything above:
+
+- `PYTHON_GIL=0` keeps the GIL off no matter what gets imported. Nothing ever flips, so gilguard never fires. Use it only for extensions you've checked are thread-safe even though they don't declare it.
+- `PYTHON_GIL=1` forces the GIL on from the start. gilguard sees that when it's imported and reports it as the cause.
+
+## Helpers
+
+Two small functions are handy whether or not the guard is installed:
+
+```python
+gilguard.is_free_threaded_build()  # True on a 't' build
+gilguard.gil_enabled()             # True if the GIL is on right now
+```
+
+They answer different questions. A free-threaded build can still have the GIL on, and that's exactly the case gilguard exists for.
+
+
+### Auditing an environment
+
+Inside a single process, gilguard can only catch the first import that turns the GIL on. After that the GIL is already on, and the next offender has nothing left to flip. That's fine for keeping a running app honest, but no help when you want the whole list before you switch an app over.
+
+The scanner gives you the whole list. It imports each package in its own fresh interpreter, with gilguard loaded first, and reports what each one did.
+
+## Run it
+
+```bash
+python -m gilguard
+```
+
+```text
+GIL    gilneeder                via gilneeder._speedups  [gilneeder 1.2.0]
+
+8 checked: 7 ok, 1 re-enable the GIL, 0 failed to import.
+Note: only import-time loads are checked. Extensions a package loads lazily on first use will not show up here.
+```
+
+Installing gilguard also gives you a `gilguard` command that runs the same scan.
+
+Each `GIL` line gives the package you'd import, the extension module that flips the GIL, and the distribution and version it came from. `ERROR` lines are packages that failed to import on their own. That's often a missing optional dependency. By default it doesn't count against the result, but it also means that package wasn't checked. Pass `--strict` to treat it as a failure.
+
+With no arguments it checks every top-level module of every installed distribution. It skips private names (starting with `_`) and packaging tools such as `pip`, `setuptools` and `wheel`.
+
+## Check specific modules
+
+Pass module names to check just those:
+
+```bash
+python -m gilguard numpy pandas lxml
+```
+
+That's quicker than a full scan, and it's how you'd re-check one package after an upgrade.
+
+## Options
+
+| Option | What it does |
+|---|---|
+| `--json` | Print the results as JSON instead of the table. |
+| `--timeout SECONDS` | Give up on a module after this long. The default is 60. A timeout shows as an error. |
+| `-j N`, `--jobs N` | How many modules to check at once. It defaults to your CPU count. |
+| `--strict` | Exit 1 when a module fails to import or times out, not only when one re-enables the GIL. |
+
+## JSON output
+
+`--json` returns one entry per module. `status` is `ok`, `gil` or `error`. A `gil` entry includes the full [report](reading-the-report.qmd), and an `error` entry includes the message:
+
+```json
+{
+  "gilneeder": {
+    "status": "gil",
+    "report": {
+      "reason": "import",
+      "module": "gilneeder._speedups",
+      "distribution": "gilneeder",
+      "version": "1.2.0",
+      "chain": ["gilneeder", "gilneeder._speedups"],
+      ...
+    }
+  },
+  "ftsafe": {
+    "status": "ok"
+  }
+}
+```
+
+## Exit codes
+
+| Code | Meaning |
+|---|---|
+| `0` | No module re-enabled the GIL. Without `--strict`, some may have failed to import and gone unchecked. |
+| `1` | At least one did. With `--strict`, also at least one failed to import or timed out. |
+| `2` | This isn't a free-threaded interpreter, so there's nothing to scan. |
+
+Because it exits 1 on any offender, the scan works as a CI gate without extra scripting. Use `--strict` in CI if a module that couldn't be checked should fail the build rather than pass quietly. [Tests and CI](tests-and-ci.qmd) has an example.
+
+## What it can't see
+
+The scan only imports each top-level package. Some packages load their extension modules later, on first use of a feature, and those won't show up. Running your test suite with gilguard active (see [Tests and CI](tests-and-ci.qmd)) catches those, as long as your tests exercise the code that loads them.
+
+Every child interpreter starts without `PYTHON_GIL` or `GILGUARD_ACTION` set, even if your shell sets them, so the scan reports what each package really does.
+
+
+### Tests and CI
+
+There are two ways to catch GIL problems before they ship, and they cover different gaps. The scanner checks every installed package at import time. Running your tests under gilguard catches extensions that only load when a code path runs. Use both.
+
+## Run pytest with gilguard loaded
+
+Load gilguard as an early plugin with `-p`:
+
+```bash
+pytest -p gilguard
+```
+
+pytest imports `-p` plugins during startup, before it collects your `conftest.py` files and test modules, so gilguard is watching before any of your code imports anything. To make it the default, add it to your pytest config:
+
+```toml
+# pyproject.toml
+[tool.pytest.ini_options]
+addopts = "-p gilguard"
+```
+
+A plain `import gilguard` at the top of `conftest.py` also works if nothing imported before it touches an extension module. `-p` is the safer choice because it doesn't depend on load order.
+
+When a test triggers an import that turns the GIL on, that test fails with the full report:
+
+```text
+FAILED test_reports.py::test_export - gilguard.GILEnabledError: Importing 'gilneeder....
+```
+
+::: {.callout-warning}
+## Everything after the first failure runs with the GIL on
+
+The GIL stays on for the rest of the pytest process, and gilguard only reports the first flip. The tests after it still run, but not free-threaded. Treat the first `GILEnabledError` as the result and fix that before you trust anything else in the run.
+:::
+
+## Scan in CI
+
+Add the scanner as its own step. It exits 1 when any installed package re-enables the GIL, which fails the job. Here's a GitHub Actions job that does both checks on a free-threaded interpreter:
+
+```yaml
+jobs:
+  free-threading:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+
+      - name: Create a free-threaded environment
+        run: |
+          uv venv -p 3.14t
+          uv pip install -e . gilguard pytest
+
+      - name: Scan installed packages
+        run: .venv/bin/python -m gilguard --strict
+
+      - name: Run tests with gilguard loaded
+        run: .venv/bin/python -m pytest -p gilguard
+```
+
+The scan prints one line per offender and finishes in seconds for a typical environment, so it's cheap to run on every push. `--strict` also fails the job when a package can't be imported at all, so a broken install can't pass as "no offenders found". Drop it if your environment has packages with optional dependencies you don't install.
+
+A passing job means the imports that ran kept the GIL off. It doesn't mean the code is thread-safe, or that it gets faster with threads. Those need their own tests.
+
+## Standard builds in the same matrix
+
+If your CI matrix also covers standard GIL builds, gilguard will raise there because the GIL is always on. Set `GILGUARD_ACTION=off` for those jobs and leave it unset for the free-threaded ones. The scanner exits 2 on a standard build, so run it only in the free-threaded job.
+
+
+
+## Under the hood
+
+### How it works
+
+gilguard is one module of plain Python, a few hundred lines with no dependencies. You don't need any of this to use it, but it helps to know what it's doing when you read a report.
+
+## Watching every import
+
+When you import gilguard, it puts a finder at the front of `sys.meta_path`. That finder doesn't find anything itself. For each import, it asks the rest of `sys.meta_path` who can load the module, then wraps that loader's `create_module` and `exec_module` before handing it back.
+
+The wrapped methods check `sys._is_gil_enabled()` before and after they run. If the GIL was off before and is on after, that module turned it on. gilguard builds the report on the spot, while the import is still on the stack.
+
+That timing is what makes the report specific. While an import is in progress, gilguard keeps track of which modules are loading inside which (the import chain), and it walks the Python stack to find the import statements involved. The outermost one outside the import machinery is "Your code". The innermost is "Imported by".
+
+The chain is tracked per thread, so imports running at the same time on different threads each get their own chain.
+
+The error is raised in the thread that ran the import. If that's a worker thread, only that thread unwinds: the main thread keeps going with the GIL on, and the process can still exit 0. gilguard leaves that alone on purpose, since killing the process from inside an import would skip cleanup and surprise most programs. The [FAQ](faq.qmd#what-happens-if-the-import-runs-in-a-worker-thread) has a `threading.excepthook` recipe if you want any flip to stop the program.
+
+## The backstop
+
+Some code loads modules without going through `sys.meta_path`. `importlib.util.module_from_spec()` with a hand-built spec is the common case. Those imports never reach the finder.
+
+CPython always emits its `RuntimeWarning` at the moment it turns the GIL on, however the module was loaded. gilguard installs its own `warnings.showwarning`, recognizes that one warning, and reports from there. Every other warning passes through to the original handler untouched.
+
+When an import goes through the finder, the warning still fires, but gilguard ignores it and lets the wrapper raise a moment later. That gives you a cleaner traceback that ends at your import statement.
+
+## Why BaseException
+
+`GILEnabledError` derives from `BaseException`, the same as `KeyboardInterrupt` and `SystemExit`. That's deliberate. Optional imports in the wild look like this:
+
+```python
+try:
+    import fastjson as json
+except ImportError:
+    import json
+```
+
+If the error were an `ImportError`, or any `Exception`, that pattern would catch it, fall back, and keep running with the GIL already on. Nothing would be fixed and nothing would be reported. Because `GILEnabledError` sits outside `Exception`, only code that names it explicitly can catch it.
+
+## First flip only
+
+gilguard reports once per process. Once the GIL is on, nothing turns it off, and no later import can turn it on again, so there's nothing left to report. It's also why the [scanner](auditing-an-environment.qmd) needs a separate interpreter for each package.
+
+## When it checks the interpreter
+
+At import time, before installing anything, gilguard checks two things. Is this a free-threaded build? If not, it reports `gil-build`. Is the GIL already on? If so, it reports `already-enabled`, with `sys.flags.gil` to show whether it was forced, plus the third-party extension modules already in `sys.modules` as suspects. Only after both checks pass does it install the finder and the warning hook.
+
+
+## Does gilguard slow down imports?
+
+Not noticeably. It adds a wrapper around each loader and a couple of `sys._is_gil_enabled()` calls per module. That's tiny next to the work of finding and executing a module. It adds nothing after imports finish.
+
+## Can I just catch GILEnabledError and carry on?
+
+You can, by naming it in an `except`, but it doesn't help. The GIL stays on for the rest of the process either way. If you want the program to keep running while you collect reports, use `GILGUARD_ACTION=warn`. That's what it's for.
+
+## What happens if the import runs in a worker thread?
+
+`GILEnabledError` is raised in that thread, like any exception. The thread dies and prints the report, but the main thread keeps running with the GIL on, and the process can exit 0. With `concurrent.futures`, the error waits in the future until you call `.result()`. `BaseException` stops ordinary `except` blocks from swallowing it. It doesn't make the whole process stop.
+
+If you want a flip in any thread to end the program, add a `threading.excepthook` right after importing gilguard:
+
+```python
+import os, threading
+import gilguard
+
+_prev_hook = threading.excepthook
+
+def _fail_fast(args):
+    _prev_hook(args)  # print the report as usual
+    if issubclass(args.exc_type, gilguard.GILEnabledError):
+        os._exit(1)
+
+threading.excepthook = _fail_fast
+```
+
+`os._exit` skips cleanup handlers. That's usually what you want once the GIL is on for good, but swap in your own shutdown if not.
+
+## If gilguard passes, is my app thread-safe?
+
+No. A clean run means the imports that actually ran didn't turn the GIL back on. It says nothing about data races in your code or your dependencies, and nothing about whether threads make your program faster. Imports on code paths you didn't exercise aren't checked either.
+
+## A package ships cp314t wheels. Why is it flagged?
+
+A free-threaded wheel means the package was compiled for the free-threaded ABI. It doesn't mean every extension module in it declares `Py_mod_gil`. Some projects publish `t` wheels before they've audited everything, and those modules still turn the GIL on when they load. The report names the specific module, which is useful in a bug report to the project. [Fixing what it finds](fixing-an-offender.qmd) covers what to put in that report.
+
+## The flagged extension is mine. How do I declare support?
+
+Add `{Py_mod_gil, Py_MOD_GIL_NOT_USED}` to the module's slots (multi-phase initialization), or call `PyUnstable_Module_SetGIL(m, Py_MOD_GIL_NOT_USED)` in a single-phase `PyInit_` function. Cython, pybind11 and PyO3 each have a one-line equivalent. [Fixing what it finds](fixing-an-offender.qmd#if-the-extension-is-yours) has the snippets, and the reminder that the declaration is a promise about thread safety, not a fix for it.
+
+## Should I run with PYTHON_GIL=0 to make the error go away?
+
+Only for extensions you've confirmed are thread-safe. `PYTHON_GIL=0` makes CPython ignore the missing declaration and keep the GIL off. If the extension really does rely on the GIL, you get data races instead of an error. gilguard never fires under `PYTHON_GIL=0`, because the GIL never comes on.
+
+## Does it work on Python 3.13?
+
+Yes, on `3.13t`. gilguard supports 3.13 and later, including `3.14t` and `3.15t`. On any standard build it raises at import unless you set `GILGUARD_ACTION=off`.
+
+## Why didn't the scanner find a package my app trips on?
+
+The scanner imports each top-level package and nothing else. If the package loads an extension later, when you call a particular function, the scan can't see it. Run your tests with `pytest -p gilguard` to cover those code paths. See [Tests and CI](tests-and-ci.qmd).
+
+## Can I use it in production?
+
+Yes. It's a pure-Python import hook with no dependencies. In `raise` mode, a deploy that pulls in an offending package fails at startup with a clear report, instead of running for weeks with the GIL quietly on. If you'd rather never fail a request over it, use `warn` and alert on the warning.
+

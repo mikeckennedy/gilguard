@@ -59,6 +59,22 @@ The value of `sys.flags.gil`: `1` when `PYTHON_GIL=1` or `-X gil=1` forced the G
 For `"already-enabled"`, the third-party extension modules that were already loaded. One of them turned the GIL on.
 
 
+## Examples
+
+Log the report as JSON and let the error carry on:
+
+``` python
+import json
+import gilguard
+
+try:
+    import gilneeder
+except gilguard.GILEnabledError as e:
+    print(json.dumps(e.report.as_dict(), indent=2))
+    raise
+```
+
+
 ## Methods
 
 | Name | Description |

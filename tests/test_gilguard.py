@@ -121,6 +121,18 @@ def test_off_mode():
     assert p.returncode == 0
 
 
+def test_install_off_after_import_removes_the_guard():
+    p = run("""
+        import gilguard
+        gilguard.install(action='off')
+        import gilneeder
+        print('ran', gilguard.gil_enabled())
+        """)
+    assert p.returncode == 0, p.stderr
+    assert p.stdout.strip() == 'ran True'
+    assert 'GILEnabledError' not in p.stderr
+
+
 def test_threaded_imports():
     p = run("""
         import gilguard, threading, json

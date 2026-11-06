@@ -46,7 +46,8 @@ parser: numpy
 # based on what works for your package, but can be overridden here.
 # : true - (default) runtime introspection; more accurate for complex packages
 # : false - static analysis only; better for packages with cyclic aliases
-dynamic: false   # gilguard raises on import under a GIL build, so inspect it statically
+dynamic: false   # gilguard raises on import under a GIL build, so inspect it statically.
+                 # build_docs.py still installs it with GILGUARD_ACTION=off so llms-full.txt can be generated.
 
 # Jupyter Kernel
 # --------------
@@ -319,6 +320,7 @@ user_guide:
     contents:
       - getting-started.qmd
       - reading-the-report.qmd
+      - fixing-an-offender.qmd
   - section: Using gilguard
     contents:
       - configuration.qmd
@@ -589,6 +591,8 @@ accent_color:
 # include_in_header:
 #   - '<script defer src="/analytics.js"></script>'
 #   - file: partials/head.html
+skill:
+  file: skills/gilguard/SKILL.md   # hand-written; the generated one only lists the API
 include_in_header:
   - file: assets/docs-head.html
   # Umami analytics. Same website id as the other docs sites under mkennedy.codes/docs/.

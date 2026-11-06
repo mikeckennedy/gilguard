@@ -2,7 +2,7 @@
   "skills": [
     {
       "name": "gilguard",
-      "description": "Raise a detailed error the moment an import re-enables the GIL on free-threaded Python. Use when writing Python code that uses the gilguard package.",
+      "description": "Catch the import that re-enables the GIL on free-threaded Python (3.13t, 3.14t, 3.15t). Use when adding gilguard to an app, test suite or CI, when a GILEnabledError or GILGuardWarning shows up, when choosing between raise, warn and off, or when auditing an environment with python -m gilguard.",
       "files": [
         "SKILL.md"
       ]

@@ -6,6 +6,10 @@ of every installed distribution.
 
 A fresh process per module is required: once the GIL is on it stays on, so a
 single process can only ever detect the first offender.
+
+Exits 1 when any module re-enables the GIL (with --strict, also when any fails
+to import or times out), 2 when this is not a free-threaded build, and 0
+otherwise. --json prints the results as data instead of the table.
 """
 
 from __future__ import annotations

@@ -337,6 +337,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
    
   <ul class="collapse">
   <li><a href="#attributes" id="toc-attributes" class="nav-link active" data-scroll-target="#attributes">Attributes</a></li>
+  <li><a href="#examples" id="toc-examples" class="nav-link" data-scroll-target="#examples">Examples</a></li>
   <li><a href="#methods" id="toc-methods" class="nav-link" data-scroll-target="#methods">Methods</a>
   <ul class="collapse">
   <li><a href="#as_dict" id="toc-as_dict" class="nav-link" data-scroll-target="#as_dict"><span class="doc-object-name doc-function doc-label doc-label-method">as_dict()</span></a></li>
@@ -372,7 +373,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 <div class="doc-usage-source">
 <p>Usage</p>
-<p><a href="https://github.com/mikeckennedy/gilguard/blob/main/src/gilguard/__init__.py#L80-L154" target="_blank" rel="noopener">Source</a></p>
+<p><a href="https://github.com/mikeckennedy/gilguard/blob/main/src/gilguard/__init__.py#L109-L198" target="_blank" rel="noopener">Source</a></p>
 </div>
 <div class="doc-signature doc-Kind.CLASS">
 <div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="sig-name">GILReport</span>(</span>
@@ -438,6 +439,18 @@ For <code>"already-enabled"</code>, the third-party extension modules that were 
 </dl>
 </div>
 </section>
+<section id="examples" class="level2 doc-examples">
+<h2 class="doc-examples">Examples</h2>
+<p>Log the report as JSON and let the error carry on:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> json</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> gilguard</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span>:</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="im">import</span> gilneeder</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="cf">except</span> gilguard.GILEnabledError <span class="im">as</span> e:</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(json.dumps(e.report.as_dict(), indent<span class="op">=</span><span class="dv">2</span>))</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">raise</span></span></code></pre></div>
+</section>
 <section id="methods" class="level2 doc-methods">
 <h2 class="doc-methods">Methods</h2>
 <table class="gd-summary-table">
@@ -478,10 +491,10 @@ Render the report as the human-readable text gilguard prints.
 </div>
 <div class="doc-usage-source">
 <p>Usage</p>
-<p><a href="https://github.com/mikeckennedy/gilguard/blob/main/src/gilguard/__init__.py#L133-L141" target="_blank" rel="noopener">Source</a></p>
+<p><a href="https://github.com/mikeckennedy/gilguard/blob/main/src/gilguard/__init__.py#L177-L185" target="_blank" rel="noopener">Source</a></p>
 </div>
 <div class="doc-signature doc-Kind.FUNCTION">
-<div class="sourceCode" id="cb2"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>as_dict()</span></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>as_dict()</span></code></pre></div>
 </div>
 <section id="returns" class="level4 doc-returns">
 <h5 class="doc-returns anchored" data-anchor-id="returns">Returns</h5>
@@ -503,10 +516,10 @@ One key per attribute, with the same names.
 </div>
 <div class="doc-usage-source">
 <p>Usage</p>
-<p><a href="https://github.com/mikeckennedy/gilguard/blob/main/src/gilguard/__init__.py#L143-L154" target="_blank" rel="noopener">Source</a></p>
+<p><a href="https://github.com/mikeckennedy/gilguard/blob/main/src/gilguard/__init__.py#L187-L198" target="_blank" rel="noopener">Source</a></p>
 </div>
 <div class="doc-signature doc-Kind.FUNCTION">
-<div class="sourceCode" id="cb3"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="bu">format</span>()</span></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="bu">format</span>()</span></code></pre></div>
 </div>
 <div class="doc-text">
 <p>This is the same text you see in the <a href="GILEnabledError.html#gilguard.GILEnabledError" class="gdls-link gdls-code">GILEnabledError</a> message and the <a href="GILGuardWarning.html#gilguard.GILGuardWarning" class="gdls-link gdls-code">GILGuardWarning</a>.</p>
