@@ -1,0 +1,77 @@
+# Getting started
+
+
+# The problem gilguard solves
+
+Free-threaded Python (the `t` builds: `3.13t`, `3.14t`, `3.15t`) runs without the global interpreter lock, so threads can run Python code in parallel. That only holds while every extension module you load agrees to it. C extensions declare that with the `Py_mod_gil` slot. When CPython loads one that hasn't, it plays safe and switches the GIL back on for the whole process.
+
+It tells you with a single line:
+
+``` text
+RuntimeWarning: The global interpreter lock (GIL) has been enabled to load module
+'gilneeder._speedups', which has not declared that it can run safely without the GIL.
+```
+
+That's easy to miss in a busy log, and it only names the extension module, not the package you imported or the line that imported it. Once the GIL is on, nothing can turn it off again. The program keeps working, just without the parallelism you switched builds for.
+
+gilguard makes that moment loud and specific.
+
+
+# Install
+
+``` bash
+uv pip install gilguard
+```
+
+Plain `pip install gilguard` works too. gilguard has no dependencies and needs Python 3.13 or newer. To be useful it has to run on a free-threaded interpreter. If you don't have one yet:
+
+``` bash
+uv python install 3.14t
+uv venv -p 3.14t
+```
+
+
+# Make it the first import
+
+``` python
+import gilguard  # must be first
+
+import fastapi
+import pandas
+```
+
+Importing gilguard installs the guard. You don't have to call anything. From then on, any import that turns the GIL on raises [GILEnabledError](../reference/GILEnabledError.md#gilguard.GILEnabledError) at that import statement, with a [report](reading-the-report.md) of what happened.
+
+It has to come first because gilguard can only watch imports that happen after it. If something earlier has already turned the GIL on, gilguard notices when it's imported and raises straight away, listing the extension modules already loaded. One of them is the culprit.
+
+> **Tip: Where "first" is in your app**
+>
+> Put it at the top of whatever module starts your process: `main.py`, the module your ASGI server loads, `manage.py`, or `__main__.py`. For tests, see [Tests and CI](tests-and-ci.md). There's a better spot than `conftest.py`.
+
+
+# Try it
+
+The fastest way to see what's in your environment is the scanner:
+
+``` bash
+python -m gilguard
+```
+
+``` text
+GIL    gilneeder                via gilneeder._speedups  [gilneeder 1.2.0]
+
+8 checked: 7 ok, 1 re-enable the GIL, 0 failed to import.
+```
+
+Each package gets imported in its own interpreter, so one offender doesn't hide the rest. [Auditing an environment](auditing-an-environment.md) covers the options.
+
+
+# On a standard build
+
+On a regular GIL build there's nothing to guard, and gilguard says so by raising:
+
+``` text
+gilguard.GILEnabledError: This is not a free-threaded Python build, so the GIL is always on.
+```
+
+If the same code has to run on both kinds of build, set `GILGUARD_ACTION=off` wherever it runs with the GIL. [Configuration](configuration.md) has the details.

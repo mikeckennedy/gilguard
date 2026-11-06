@@ -48,18 +48,77 @@ _ACTIONS = ('raise', 'warn', 'off')
 
 
 def is_free_threaded_build() -> bool:
-    """True when this interpreter was built with --disable-gil (python3.13t, 3.14t, ...)."""
+    """Check whether this interpreter is a free-threaded build.
+
+    A free-threaded build is one compiled with `--disable-gil`, usually installed
+    as `python3.13t`, `python3.14t` and so on. This says nothing about whether the
+    GIL is on right now; use `gil_enabled()` for that.
+
+    Returns
+    -------
+    bool
+        `True` on a free-threaded build, `False` on a standard build.
+    """
     return bool(sysconfig.get_config_var('Py_GIL_DISABLED'))
 
 
 def gil_enabled() -> bool:
-    """True when the GIL is currently enabled in this process."""
+    """Check whether the GIL is enabled in this process right now.
+
+    On a free-threaded build this starts out `False` and flips to `True` for good
+    once something turns the GIL back on. On a standard build it is always `True`.
+
+    Returns
+    -------
+    bool
+        `True` if the GIL is currently enabled.
+    """
     fn = getattr(sys, '_is_gil_enabled', None)
     return True if fn is None else bool(fn())
 
 
 @dataclass
 class GILReport:
+    """Everything gilguard knows about why the GIL is on.
+
+    You get one of these as `GILEnabledError.report`. Which fields are filled in
+    depends on `reason`: an import flip fills in the module details, while the
+    other two reasons only describe the interpreter.
+
+    Attributes
+    ----------
+    reason
+        What happened. `"import"` means an import turned the GIL on.
+        `"already-enabled"` means it was on before gilguard was imported.
+        `"gil-build"` means this is a standard build, where the GIL is always on.
+    module
+        Full name of the extension module that turned the GIL on, such as
+        `"gilneeder._speedups"`.
+    origin
+        Path to that module's file, usually a `.so` or `.pyd`.
+    distribution
+        Name of the installed distribution that shipped the module, if gilguard
+        can find one.
+    version
+        Version of that distribution.
+    chain
+        Module names from the first import down to the offender, outermost first.
+        `["pandas", "pandas._libs", "pandas._libs.lib"]` reads as "pandas imported
+        pandas._libs, which imported pandas._libs.lib".
+    imported_by
+        `file:line` of the innermost import statement, the one that loaded the
+        offending module. This is usually inside the package itself.
+    your_code
+        `file:line` of the outermost import statement, where the chain started.
+        This is usually your code.
+    gil_flag
+        The value of `sys.flags.gil`: `1` when `PYTHON_GIL=1` or `-X gil=1` forced
+        the GIL on, `0` when it was forced off, `None` when neither was set.
+    suspects
+        For `"already-enabled"`, the third-party extension modules that were
+        already loaded. One of them turned the GIL on.
+    """
+
     reason: str  # "import", "already-enabled", "gil-build"
     module: str | None = None
     origin: str | None = None
@@ -72,19 +131,49 @@ class GILReport:
     suspects: list[str] = field(default_factory=list)
 
     def as_dict(self) -> dict:
+        """Return the report as a plain dict, ready for `json.dumps()`.
+
+        Returns
+        -------
+        dict
+            One key per attribute, with the same names.
+        """
         return asdict(self)
 
     def format(self) -> str:
+        """Render the report as the human-readable text gilguard prints.
+
+        This is the same text you see in the `GILEnabledError` message and the
+        `GILGuardWarning`.
+
+        Returns
+        -------
+        str
+            A multi-line description of what happened and how to fix it.
+        """
         return _format_report(self)
 
 
 class GILEnabledError(BaseException):
     """The GIL was enabled on a free-threaded interpreter.
 
-    Derives from BaseException on purpose. The GIL cannot be turned back off,
-    so an `except Exception:` or `except ImportError:` around an optional
-    import must not be able to swallow this and keep the program running
-    with the GIL on.
+    The message is the formatted report, and the structured version is on
+    `report`.
+
+    This derives from `BaseException` on purpose. The GIL can't be turned back
+    off, so an `except Exception:` or `except ImportError:` around an optional
+    import must not be able to swallow it and keep the program running with the
+    GIL on. Catch `gilguard.GILEnabledError` by name if you really mean to.
+
+    Parameters
+    ----------
+    report
+        The details of what turned the GIL on.
+
+    Attributes
+    ----------
+    report : GILReport
+        The same report, for code that wants the data rather than the text.
     """
 
     def __init__(self, report: GILReport):
@@ -93,7 +182,12 @@ class GILEnabledError(BaseException):
 
 
 class GILGuardWarning(RuntimeWarning):
-    """Emitted instead of raising when GILGUARD_ACTION=warn."""
+    """Emitted instead of raising when the action is `warn`.
+
+    The warning message is the same formatted report that `GILEnabledError`
+    carries. It subclasses `RuntimeWarning`, so you can filter it, log it or
+    capture it like any other warning.
+    """
 
 
 # --------------------------------------------------------------------------
@@ -367,7 +461,29 @@ def _showwarning(
 
 
 def install(action: str | None = None) -> None:
-    """Start guarding imports. Called automatically when gilguard is imported."""
+    """Start guarding imports.
+
+    `import gilguard` calls this for you, so you only need it to choose the
+    action in code, or to start guarding again after `uninstall()`.
+
+    Before it starts guarding, it checks the interpreter. On a standard build,
+    or if the GIL is already on, it reports that straight away instead.
+
+    Parameters
+    ----------
+    action
+        `"raise"` to raise `GILEnabledError`, `"warn"` to emit `GILGuardWarning`
+        and keep running, or `"off"` to do nothing. `None` reads the
+        `GILGUARD_ACTION` environment variable and falls back to `"raise"`.
+
+    Raises
+    ------
+    ValueError
+        If the action is not one of `raise`, `warn` or `off`.
+    GILEnabledError
+        If the action is `raise` and the interpreter is a standard build, or the
+        GIL is already enabled.
+    """
     global _installed, _action, _orig_showwarning, _finder
 
     action = (action or os.environ.get('GILGUARD_ACTION') or 'raise').strip().lower()
@@ -402,7 +518,12 @@ def install(action: str | None = None) -> None:
 
 
 def uninstall() -> None:
-    """Stop guarding imports."""
+    """Stop guarding imports.
+
+    This removes gilguard's import hook and restores `warnings.showwarning`. Later
+    imports can turn the GIL on without a report. Call `install()` to start
+    guarding again.
+    """
     global _installed
     if not _installed:
         return

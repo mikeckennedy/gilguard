@@ -6,6 +6,8 @@
 
 Raise a detailed error the moment an import re-enables the GIL on free-threaded Python.
 
+Full documentation: [mkennedy.codes/docs/gilguard](https://mkennedy.codes/docs/gilguard/)
+
 On a free-threaded build (3.13t, 3.14t, 3.15t), importing an extension module that doesn't declare free-threading support quietly turns the GIL back on for the rest of the process. CPython prints one `RuntimeWarning` and moves on. Once it's on, it can't be turned off.
 
 gilguard turns that into an exception that names the module, the package it came from, and the line of your code that pulled it in.
@@ -93,3 +95,5 @@ python -m pytest
 ```
 
 The fixtures are two tiny C extensions: one without `Py_mod_gil` (re-enables the GIL) and one that declares `Py_MOD_GIL_NOT_USED`.
+
+The docs site is built with [Great Docs](https://posit-dev.github.io/great-docs/) (needs [Quarto](https://quarto.org)). The source is `great-docs.yml`, `index.qmd`, and `user_guide/`. Build it with `python scripts/build_docs.py`, which writes the finished site to `site/` and points its images at the hosted copies. Publish the contents of `site/` to `https://mkennedy.codes/docs/gilguard/`. Use `uvx great-docs preview` for a local preview while writing.

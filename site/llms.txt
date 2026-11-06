@@ -1,0 +1,26 @@
+# gilguard
+
+> Raise a detailed error the moment an import re-enables the GIL on free-threaded Python.
+
+## Docs
+
+### API Reference
+
+#### When the GIL comes back on
+> What gilguard raises or warns with, and the report that comes with it.
+
+- [GILEnabledError](https://mkennedy.codes/docs/gilguard/reference/GILEnabledError.html)
+- [GILReport](https://mkennedy.codes/docs/gilguard/reference/GILReport.html)
+- [GILGuardWarning](https://mkennedy.codes/docs/gilguard/reference/GILGuardWarning.html)
+
+#### Turning the guard on and off
+> `import gilguard` calls install() for you. Use these to choose the action in code or to stop guarding.
+
+- [install](https://mkennedy.codes/docs/gilguard/reference/install.html)
+- [uninstall](https://mkennedy.codes/docs/gilguard/reference/uninstall.html)
+
+#### Checking the interpreter
+> Small helpers you can use with or without the guard installed.
+
+- [is_free_threaded_build](https://mkennedy.codes/docs/gilguard/reference/is_free_threaded_build.html)
+- [gil_enabled](https://mkennedy.codes/docs/gilguard/reference/gil_enabled.html)

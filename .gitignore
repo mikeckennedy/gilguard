@@ -167,7 +167,7 @@ venv.bak/
 .ropeproject
 
 # mkdocs/Zensical documentation
-/site
+# (./site is the built gilguard docs site and is committed)
 
 # mypy
 .mypy_cache/
@@ -220,3 +220,6 @@ __marimo__/
 .streamlit/secrets.toml
 .DS_Store
 .rumdl_cache/
+
+# Great Docs build output
+great-docs/

@@ -1,0 +1,84 @@
+---
+toc: false
+---
+
+On a free-threaded Python build, a single import can quietly undo the reason you're on that build. If an extension module hasn't declared that it's safe without the GIL, CPython turns the GIL back on for the rest of the process, prints one `RuntimeWarning`, and keeps going. Your threads still run, they just stop running in parallel. Nothing tells you which package did it, and nothing can turn it back off.
+
+gilguard turns that moment into an exception. It names the extension module, the package that shipped it, and the line of your code that started the import.
+
+```bash
+uv pip install gilguard
+```
+
+## One import, first thing
+
+```python
+import gilguard  # must be first
+
+import fastapi
+import pandas  # <- raises here if anything in pandas' import tree needs the GIL
+```
+
+When something in that tree needs the GIL, you get this instead of a warning you might not notice:
+
+```text
+gilguard.GILEnabledError: Importing 'gilneeder._speedups' re-enabled the GIL.
+
+  Module:       gilneeder._speedups
+  File:         .../site-packages/gilneeder/_speedups.cpython-314t-x86_64-linux-gnu.so
+  Distribution: gilneeder 1.2.0
+  Import chain: gilneeder -> gilneeder._speedups
+  Your code:    /home/me/app.py:5
+  Imported by:  .../site-packages/gilneeder/__init__.py:1
+
+This extension module does not declare free-threading support (Py_mod_gil), so CPython
+turned the GIL back on for the rest of the process. It cannot be turned off again.
+
+Options:
+  - Upgrade gilneeder to a release that ships free-threaded (cp314t) wheels.
+  - Drop or replace gilneeder.
+  - If you have verified it is thread-safe, run with PYTHON_GIL=0 to keep the GIL off (at your own risk).
+  - Run `python -m gilguard` to list every installed package that does this.
+```
+
+`gilneeder` is one of gilguard's test fixtures, a tiny C extension built to misbehave. The same report comes back as data on `exc.report`, so you can log it or fail a build on it.
+
+## What you get
+
+::: {.grid}
+
+::: {.g-col-12 .g-col-md-6}
+#### The culprit, by name
+
+The module, its file on disk, the distribution and version it came from, and the full import chain from your code down to the offending extension.
+:::
+
+::: {.g-col-12 .g-col-md-6}
+#### An error you can't swallow by accident
+
+`GILEnabledError` derives from `BaseException`, so the usual `try: import x` / `except ImportError:` pattern can't hide it and carry on with the GIL on.
+:::
+
+::: {.g-col-12 .g-col-md-6}
+#### A whole-environment audit
+
+A process can only catch the first offender. `python -m gilguard` imports every installed package in its own fresh interpreter and lists all of them. It exits 1 when it finds one, so it drops straight into CI.
+:::
+
+::: {.g-col-12 .g-col-md-6}
+#### Warn mode when you're not ready to fail
+
+Set `GILGUARD_ACTION=warn` and you get the same report as a warning while the program keeps running. Set it to `off` to run the same code on a standard build.
+:::
+
+:::
+
+## Where to go next
+
+- [Getting started](user-guide/getting-started.qmd) covers installing it and where the import goes.
+- [Reading the report](user-guide/reading-the-report.qmd) explains each field and the three reasons the GIL can be on.
+- [Auditing an environment](user-guide/auditing-an-environment.qmd) is the place to start if you're moving an existing app to free-threaded Python.
+- [Tests and CI](user-guide/tests-and-ci.qmd) shows how to catch offenders before they reach production.
+- The [API reference](reference/index.qmd) documents every public name.
+
+gilguard is MIT licensed and has no dependencies. It needs Python 3.13 or newer, and does its real work on a free-threaded build (`3.13t`, `3.14t`, `3.15t`).

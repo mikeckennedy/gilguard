@@ -18,6 +18,7 @@ classifiers = [
 
 [project.urls]
 Homepage = "https://github.com/mikeckennedy/gilguard"
+Documentation = "https://mkennedy.codes/docs/gilguard/"
 Source = "https://github.com/mikeckennedy/gilguard"
 Issues = "https://github.com/mikeckennedy/gilguard/issues"
 

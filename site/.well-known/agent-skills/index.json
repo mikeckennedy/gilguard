@@ -1,0 +1,11 @@
+{
+  "skills": [
+    {
+      "name": "gilguard",
+      "description": "Raise a detailed error the moment an import re-enables the GIL on free-threaded Python. Use when writing Python code that uses the gilguard package.",
+      "files": [
+        "SKILL.md"
+      ]
+    }
+  ]
+}

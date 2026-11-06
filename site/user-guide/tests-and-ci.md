@@ -1,0 +1,64 @@
+# Tests and CI
+
+There are two ways to catch GIL problems before they ship, and they cover different gaps. The scanner checks every installed package at import time. Running your tests under gilguard catches extensions that only load when a code path runs. Use both.
+
+
+# Run pytest with gilguard loaded
+
+Load gilguard as an early plugin with `-p`:
+
+``` bash
+pytest -p gilguard
+```
+
+pytest imports `-p` plugins during startup, before it collects your `conftest.py` files and test modules, so gilguard is watching before any of your code imports anything. To make it the default, add it to your pytest config:
+
+``` toml
+# pyproject.toml
+[tool.pytest.ini_options]
+addopts = "-p gilguard"
+```
+
+A plain `import gilguard` at the top of `conftest.py` also works if nothing imported before it touches an extension module. `-p` is the safer choice because it doesn't depend on load order.
+
+When a test triggers an import that turns the GIL on, that test fails with the full report:
+
+``` text
+FAILED test_reports.py::test_export - gilguard.GILEnabledError: Importing 'gilneeder....
+```
+
+> **Warning: Everything after the first failure runs with the GIL on**
+>
+> The GIL stays on for the rest of the pytest process, and gilguard only reports the first flip. The tests after it still run, but not free-threaded. Treat the first [GILEnabledError](../reference/GILEnabledError.md#gilguard.GILEnabledError) as the result and fix that before you trust anything else in the run.
+
+
+# Scan in CI
+
+Add the scanner as its own step. It exits 1 when any installed package re-enables the GIL, which fails the job. Here's a GitHub Actions job that does both checks on a free-threaded interpreter:
+
+``` yaml
+jobs:
+  free-threading:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+
+      - name: Create a free-threaded environment
+        run: |
+          uv venv -p 3.14t
+          uv pip install -e . gilguard pytest
+
+      - name: Scan installed packages
+        run: .venv/bin/python -m gilguard
+
+      - name: Run tests with gilguard loaded
+        run: .venv/bin/python -m pytest -p gilguard
+```
+
+The scan prints one line per offender and finishes in seconds for a typical environment, so it's cheap to run on every push.
+
+
+# Standard builds in the same matrix
+
+If your CI matrix also covers standard GIL builds, gilguard will raise there because the GIL is always on. Set `GILGUARD_ACTION=off` for those jobs and leave it unset for the free-threaded ones. The scanner exits 2 on a standard build, so run it only in the free-threaded job.
